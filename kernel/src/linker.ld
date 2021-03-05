@@ -5,10 +5,13 @@ ENTRY(_start)
 
 # 为什么是0x80200000？
 # 因为rust-sbi初始化完后进入的地址为0x80200000
-BASE_ADDRESS = 0x80200000;
+START_ADDRESS = 0x80200000;
 
 SECTIONS
 {
+    # 定位START_ADDRESS
+    . = START_ADDRESS;
+
     # 代码段
     .text : {
         # 链接入口
