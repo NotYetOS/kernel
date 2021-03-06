@@ -6,13 +6,14 @@ use crate::sbi;
 fn panic(info: &PanicInfo) -> ! {
     match info.location() {
         Some(location) => {
-            println!("[kernel] Panicked at {}:{} {}", 
+            println!("[kernel] panicked at '{}', {}:{}:{}", 
+                info.message().unwrap(),
                 location.file(), 
-                location.line(), 
-                info.message().unwrap()
+                location.line(),
+                location.column()
             );
         }
-        None => println!("[kernel] Panicked: {}", info.message().unwrap())
+        None => println!("[kernel] panicked at '{}'", info.message().unwrap())
     }
     sbi::shutdown()
 }
