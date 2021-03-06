@@ -47,6 +47,9 @@ SECTIONS
 
     # 我也不知道这个段该怎么说
     .bss : {
+        # 链接栈段
+        *(.bss.stack)
+        
         # 匹配所有段
         *(.bss .bss.*)
     }

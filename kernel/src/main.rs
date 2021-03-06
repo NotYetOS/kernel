@@ -2,7 +2,6 @@
 // 同样没有main
 // 开启panic_info_message特性
 // 开启global_asm特性
-
 #![no_std]
 #![no_main]
 #![feature(panic_info_message)]
