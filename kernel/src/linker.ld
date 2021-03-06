@@ -4,7 +4,7 @@ OUTPUT_ARCH(riscv)
 ENTRY(_start)
 
 # 为什么是0x80200000？
-# 因为rust-sbi初始化完后进入的地址为0x80200000
+# 因为sbi初始化完后进入的地址为0x80200000
 START_ADDRESS = 0x80200000;
 
 SECTIONS
