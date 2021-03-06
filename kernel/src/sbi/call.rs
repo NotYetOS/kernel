@@ -11,18 +11,20 @@ const SBI_REMOTE_SFENCE_VMA: u8 = 0x06;
 const SBI_REMOTE_SFENCE_VMA_ASID: u8 = 0x07;
 const SBI_SHUTDOWN: u8 = 0x08;
 
+#[inline]
 fn sbicall(id: u8, args: [usize; 3]) -> super::ret::Ret {
     let error: isize;
     let value: isize;
 
     // ecall to sbi
     unsafe {
-        llvm_asm! {
-            "ecall"
-            : "={x10}"(error), "={x11}"(value)
-            : "{x10}"(args[0]), "{x11}"(args[1]), "{x12}"(args[2]), "{x17}"(id)
-            : "memory"
-            : "volatile"
+        asm! {
+            "ecall",
+            lateout("x10") error, 
+            lateout("x11") value,
+            in("x10") args[0], in("x11") args[1], in("x12") args[2], 
+            in("x17") id,
+            options(nostack)
         };
     }
 

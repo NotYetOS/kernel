@@ -6,7 +6,7 @@
 // to support module-level inline assembly
 #![feature(global_asm)]
 // to support inline assembly
-#![feature(llvm_asm)]
+#![feature(asm)]
 // see sbi/ret/ErrorType
 #![feature(arbitrary_enum_discriminant)]
 
