@@ -8,6 +8,9 @@
 #![feature(global_asm)]
 // 开启内联汇编特性
 #![feature(llvm_asm)]
+// 开启arbitrary_enum_discriminant，是个好东西
+// 具体可看sbi/ret的ErrorType
+#![feature(arbitrary_enum_discriminant)]
 
 // 搞进entry.asm
 global_asm!(include_str!("entry.asm"));
@@ -19,5 +22,5 @@ mod sbi;
 // 让entry.asm的call指令找得到main
 #[no_mangle]
 fn main() {
-    loop {}
+    panic!();
 }

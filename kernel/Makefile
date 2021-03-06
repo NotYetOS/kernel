@@ -4,7 +4,7 @@ TARGET := riscv64gc-unknown-none-elf
 KERNEL_ELF := target/$(TARGET)/$(MODE)/kernel
 KERNEL_BIN := kernel.bin
 KERNEL_ENTRY := 0x80200000
-BOOTLOADER = rustsbi-qemu.bin
+BOOTLOADER = fw_payload.bin
 
 build: 
 ifeq ($(MODE), debug)

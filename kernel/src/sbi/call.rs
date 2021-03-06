@@ -31,3 +31,17 @@ fn sbicall(id: u8, args: [usize; 3]) -> super::ret::Ret {
         value,
     }
 }
+
+pub fn console_putchar(ch: char) {
+    sbicall(SBI_CONSOLE_PUTCHAR, [ch as usize, 0, 0]);
+}
+
+pub fn console_getchar() -> isize {
+    let ret = sbicall(SBI_CONSOLE_GETCHAR, [0, 0, 0]);
+    ret.error.into()
+}
+
+pub fn shutdown() -> ! {
+    sbicall(SBI_SHUTDOWN, [0, 0, 0]);
+    unreachable!()
+}

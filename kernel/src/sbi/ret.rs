@@ -7,7 +7,8 @@ pub struct Ret {
 }
 
 // 定义错误类型，RISCV标准
-// Undefind不该出现，但是为了匹配_
+// Other匹配console_getchar
+#[repr(isize)]
 pub enum ErrorType {
     SBI_SUCCESS = 0,
     SBI_ERR_FAILED = -1,
@@ -16,7 +17,7 @@ pub enum ErrorType {
     SBI_ERR_DENIED = -4,
     SBI_ERR_INVALID_ADDRESS = -5,
     SBI_ERR_ALREADY_AVAILABLE = -6,
-    Undefind = -7,
+    Other(isize) = -7
 }
 
 impl From<isize> for ErrorType {
@@ -29,7 +30,22 @@ impl From<isize> for ErrorType {
             -4 => ErrorType::SBI_ERR_DENIED,
             -5 => ErrorType::SBI_ERR_INVALID_ADDRESS,
             -6 => ErrorType::SBI_ERR_ALREADY_AVAILABLE,
-            _ => ErrorType::Undefind
+            v => ErrorType::Other(v)
+        }
+    }
+}
+
+impl From<ErrorType> for isize {
+    fn from(e: ErrorType) -> Self {
+        match e {
+            ErrorType::SBI_SUCCESS => 0,
+            ErrorType::SBI_ERR_FAILED => -1,
+            ErrorType::SBI_ERR_NOT_SUPPORTED => -2,
+            ErrorType::SBI_ERR_INVALID_PARAM => -3,
+            ErrorType::SBI_ERR_DENIED => -4,
+            ErrorType::SBI_ERR_INVALID_ADDRESS => -5,
+            ErrorType::SBI_ERR_ALREADY_AVAILABLE => -6,
+            ErrorType::Other(v) => v
         }
     }
 }
