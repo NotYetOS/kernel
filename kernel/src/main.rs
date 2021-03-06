@@ -15,6 +15,9 @@
 // 搞进entry.asm
 global_asm!(include_str!("entry.asm"));
 
+// 导入宏
+#[macro_use]
+mod console;
 mod panic;
 mod sbi;
 
@@ -22,5 +25,6 @@ mod sbi;
 // 让entry.asm的call指令找得到main
 #[no_mangle]
 fn main() {
-    panic!();
+    println!("wow, i'm stupid");
+    panic!("emm, to panic");
 }
