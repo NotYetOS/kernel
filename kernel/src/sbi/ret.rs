@@ -6,8 +6,8 @@ pub struct Ret {
     pub value: isize,
 }
 
-// 定义错误类型，RISCV标准
-// Other匹配console_getchar
+// define error type，RISCV SBI standard
+// 'Other' to match console_getchar
 #[repr(isize)]
 pub enum ErrorType {
     SBI_SUCCESS = 0,

@@ -1,4 +1,4 @@
-// SBI是个好东西 
+// SBI is a good thing
 #![allow(unused)]
 
 const SBI_SET_TIMER: u8 = 0x00;
@@ -15,7 +15,7 @@ fn sbicall(id: u8, args: [usize; 3]) -> super::ret::Ret {
     let error: isize;
     let value: isize;
 
-    // 内联汇编
+    // ecall to sbi
     unsafe {
         llvm_asm! {
             "ecall"

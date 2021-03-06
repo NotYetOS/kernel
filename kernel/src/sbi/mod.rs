@@ -1,7 +1,7 @@
-// 实现SBI调用方法和规范
+// impl sbicalls and obey the rule
 
 pub mod call;
 pub mod ret;
 
-// 重新导出
+// to export
 pub use call::*;

@@ -1,4 +1,4 @@
-# make大法好，ninja那是人用的？
+# make is good，ninja??？
 MODE := debug
 TARGET := riscv64gc-unknown-none-elf
 KERNEL_ELF := target/$(TARGET)/$(MODE)/kernel

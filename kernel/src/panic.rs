@@ -1,7 +1,7 @@
 use core::panic::PanicInfo;
 use crate::sbi;
 
-// panic的处理
+// the processing of panic, just shutdown...
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     match info.location() {
