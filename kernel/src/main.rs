@@ -23,10 +23,24 @@ mod config;
 #[macro_use]
 extern crate bitflags;
 
+fn clear_bss() {
+    extern "C" {
+        fn sbss();
+        fn ebss();
+    }
+
+    (sbss as usize..ebss as usize).for_each(|addr| 
+        unsafe { 
+            (addr as *mut u8).write_volatile(0) 
+        }
+    )
+}
+
 // prevent the compiler from blindly generating function names
 // let the call command find main function
 #[no_mangle]
 fn main() {
+    clear_bss();
     println!("wow, i'm stupid");
     panic!("emm, to panic");
 }
