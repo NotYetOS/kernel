@@ -1,7 +1,7 @@
 // impl sbicalls and obey the rule
 
-pub mod call;
-pub mod ret;
+mod call;
+mod ret;
 
 // to export
 pub use call::*;

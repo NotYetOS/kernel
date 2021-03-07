@@ -17,6 +17,8 @@ global_asm!(include_str!("entry.asm"));
 mod console;
 mod panic;
 mod sbi;
+mod mm;
+mod config;
 
 // prevent the compiler from blindly generating function names
 // let the call command find main function
