@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+// use marco to improve the code
 macro_rules! impl_into {
     ($from: ty => usize) => {
         impl From<$from> for usize {
@@ -33,13 +34,17 @@ macro_rules! impl_into {
 
 use crate::config::*;
 
-struct VirtAddr(usize);
+#[derive(Clone, Copy)]
+pub struct VirtAddr(usize);
 
-struct VirtPageNum(usize);
+#[derive(Clone, Copy)]
+pub struct VirtPageNum(usize);
 
-struct PhysAddr(usize);
+#[derive(Clone, Copy)]
+pub struct PhysAddr(usize);
 
-struct PhysPageNum(usize);
+#[derive(Clone, Copy)]
+pub struct PhysPageNum(usize);
 
 impl VirtAddr {
     pub fn floor(&self) -> VirtPageNum { 

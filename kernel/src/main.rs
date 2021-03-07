@@ -20,6 +20,9 @@ mod sbi;
 mod mm;
 mod config;
 
+#[macro_use]
+extern crate bitflags;
+
 // prevent the compiler from blindly generating function names
 // let the call command find main function
 #[no_mangle]
