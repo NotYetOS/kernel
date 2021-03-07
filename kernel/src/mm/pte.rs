@@ -18,7 +18,7 @@ use super::PhysPageNum;
 // PTE is 8 bytes
 // so 512 * 8 = 4096 = 4K = PAGE_SIZE
 #[repr(C)]
-struct PageTableEntry {
+pub struct PageTableEntry {
     bits: usize
 }
 

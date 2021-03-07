@@ -33,6 +33,7 @@ macro_rules! impl_into {
 }
 
 use crate::config::*;
+use super::PageTableEntry;
 
 #[derive(Clone, Copy)]
 pub struct VirtAddr(usize);
@@ -56,6 +57,18 @@ impl VirtAddr {
     }
 }
 
+impl VirtPageNum {
+    pub fn indexes(&self) -> [usize; 3] {
+        let mut vpn = self.0;
+        let mut ret = [0; 3];
+        for i in (0..3).rev() {
+            ret[i] = vpn & 511;
+            vpn >>= 9; 
+        }
+        ret
+    }
+}
+
 impl PhysAddr {
     pub fn floor(&self) -> PhysPageNum { 
         PhysPageNum(self.0 / PAGE_SIZE) 
@@ -63,6 +76,29 @@ impl PhysAddr {
     
     pub fn ceil(&self) -> PhysPageNum { 
         PhysPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE) 
+    }
+}
+
+impl PhysPageNum {
+    pub fn get_ptes(&self) -> &'static mut [PageTableEntry] {
+        let pa: PhysAddr = self.clone().into();
+        unsafe {
+            core::slice::from_raw_parts_mut(pa.0 as *mut PageTableEntry, PAGE_SIZE / 8)
+        }
+    }
+
+    pub fn get_page_bytes(&self) -> &'static mut [u8] {
+        let pa: PhysAddr = self.clone().into();
+        unsafe {
+            core::slice::from_raw_parts_mut(pa.0 as *mut u8, PAGE_SIZE)
+        }
+    }
+
+    pub fn get_mut<T>(&self) -> &'static mut T {
+        let pa: PhysAddr = self.clone().into();
+        unsafe {
+            (pa.0 as *mut T).as_mut().unwrap()
+        }
     }
 }
 

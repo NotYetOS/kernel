@@ -3,6 +3,8 @@
 _start: 
     # load stack_top to sp register
     la sp, stack_top
+    # clear bss first
+    call clear_bss
     call main
 
     .section .bss.stack

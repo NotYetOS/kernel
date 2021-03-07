@@ -9,6 +9,8 @@
 #![feature(asm)]
 // see sbi/ret/ErrorType
 #![feature(arbitrary_enum_discriminant)]
+// to support alloc error handler
+#![feature(alloc_error_handler)]
 
 // load entry.asm
 global_asm!(include_str!("entry.asm"));
@@ -23,6 +25,7 @@ mod config;
 #[macro_use]
 extern crate bitflags;
 
+#[no_mangle]
 fn clear_bss() {
     extern "C" {
         fn sbss();
@@ -33,14 +36,14 @@ fn clear_bss() {
         unsafe { 
             (addr as *mut u8).write_volatile(0) 
         }
-    )
+    );
 }
 
 // prevent the compiler from blindly generating function names
 // let the call command find main function
 #[no_mangle]
 fn main() {
-    clear_bss();
+    mm::init_heap();
     println!("wow, i'm stupid");
     panic!("emm, to panic");
 }

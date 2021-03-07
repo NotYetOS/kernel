@@ -8,3 +8,8 @@ edition = "2018"
 
 [dependencies]
 bitflags = "1.2.1"
+buddy_system_allocator = "0.7.0"
+
+[dependencies.lazy_static]
+version = "1.4.0"
+features = ["spin_no_std"]
