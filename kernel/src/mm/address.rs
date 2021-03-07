@@ -1,5 +1,15 @@
 #![allow(unused)]
 
+macro_rules! impl_debug {
+    ($target: ty) => {
+        impl Debug for $target {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_fmt(format_args!("{}:{:#x}", stringify!($target), self.0))
+            }
+        }
+    };
+}
+
 // use marco to improve the code
 macro_rules! impl_into {
     ($from: ty => usize) => {
@@ -32,6 +42,19 @@ macro_rules! impl_into {
     }
 }
 
+use core::fmt::{
+    self, 
+    Formatter,
+    Debug
+};
+
+use core::ops::{
+    Add, 
+    Sub,
+    AddAssign, 
+    SubAssign
+};
+
 use crate::config::*;
 use super::PageTableEntry;
 
@@ -44,7 +67,7 @@ pub struct VirtPageNum(usize);
 #[derive(Clone, Copy)]
 pub struct PhysAddr(usize);
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, PartialOrd)]
 pub struct PhysPageNum(usize);
 
 impl VirtAddr {
@@ -83,14 +106,20 @@ impl PhysPageNum {
     pub fn get_ptes(&self) -> &'static mut [PageTableEntry] {
         let pa: PhysAddr = self.clone().into();
         unsafe {
-            core::slice::from_raw_parts_mut(pa.0 as *mut PageTableEntry, PAGE_SIZE / 8)
+            core::slice::from_raw_parts_mut(
+                pa.0 as *mut PageTableEntry, 
+                PAGE_SIZE / 8
+            )
         }
     }
 
     pub fn get_page_bytes(&self) -> &'static mut [u8] {
         let pa: PhysAddr = self.clone().into();
         unsafe {
-            core::slice::from_raw_parts_mut(pa.0 as *mut u8, PAGE_SIZE)
+            core::slice::from_raw_parts_mut(
+                pa.0 as *mut u8, 
+                PAGE_SIZE
+            )
         }
     }
 
@@ -101,6 +130,39 @@ impl PhysPageNum {
         }
     }
 }
+
+impl Add<usize> for PhysPageNum {
+    type Output = PhysPageNum;
+
+    fn add(self, rhs: usize) -> Self::Output {
+        (self.0 + rhs).into()
+    }
+}
+
+impl Sub<usize> for PhysPageNum {
+    type Output = PhysPageNum;
+
+    fn sub(self, rhs: usize) -> Self::Output {
+        (self.0 - rhs).into()
+    }
+}
+
+impl AddAssign<usize> for PhysPageNum {
+    fn add_assign(&mut self, rhs: usize) {
+        self.0 + rhs;
+    }
+}
+
+impl SubAssign<usize> for PhysPageNum {
+    fn sub_assign(&mut self, rhs: usize) {
+        self.0 - rhs;
+    }
+}
+
+impl_debug!(VirtAddr);
+impl_debug!(VirtPageNum);
+impl_debug!(PhysAddr);
+impl_debug!(PhysPageNum);
 
 impl_into!(VirtPageNum => VirtAddr);
 impl_into!(PhysPageNum => PhysAddr);

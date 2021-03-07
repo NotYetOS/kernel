@@ -25,7 +25,7 @@ fn sbicall(id: u8, args: [usize; 3]) -> super::ret::Ret {
             in("x10") args[0], in("x11") args[1], in("x12") args[2], 
             in("x17") id,
             options(nostack)
-        };
+        }
     }
 
     super::ret::Ret {

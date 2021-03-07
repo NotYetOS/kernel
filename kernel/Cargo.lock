@@ -24,6 +24,7 @@ dependencies = [
  "bitflags",
  "buddy_system_allocator",
  "lazy_static",
+ "spin 0.7.1",
 ]
 
 [[package]]

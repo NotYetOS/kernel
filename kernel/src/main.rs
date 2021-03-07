@@ -24,6 +24,7 @@ mod config;
 
 #[macro_use]
 extern crate bitflags;
+extern crate alloc;
 
 #[no_mangle]
 fn clear_bss() {
