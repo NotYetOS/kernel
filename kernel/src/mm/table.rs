@@ -5,8 +5,8 @@ use super::{
     PageTableEntry,
     PhysPageNum,
     VirtPageNum, 
-    frame_alloc,
     PTEFlags,
+    frame_alloc,
 };
 use alloc::vec::Vec;
 
@@ -60,7 +60,7 @@ impl PageTable {
             Some(pte) => pte,
             None => unreachable!()
         };
-        assert!(!pte.is_valid(), "vpn {:?} is invalid before unmapping", vpn);
+        assert!(!pte.is_valid(), "{:?} is invalid before unmapping", vpn);
         *pte = PageTableEntry::new(ppn, PTEFlags::V);
     }
 

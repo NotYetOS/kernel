@@ -33,7 +33,7 @@ lazy_static! {
             fn ekernel();
         }
         let start = PhysAddr::from(ekernel as usize).ceil();
-        let end = PhysAddr::from(MEMORY_END).ceil();
+        let end = PhysAddr::from(MEMORY_END).floor();
         Mutex::new(FrameAllocator::new(start, end))
     };
 }
@@ -86,7 +86,6 @@ impl From<FrameTracker> for PhysPageNum {
         f.0
     }
 }
-
 
 pub fn frame_alloc() -> FrameTracker {
     match FRAME_ALL0CATOR.lock().alloc() {
