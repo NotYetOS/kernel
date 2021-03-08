@@ -5,7 +5,7 @@ mod table;
 mod allocators;
 mod set;
 
-// mapping sections and activate Sv39
+// map sections and activate Sv39
 pub fn init() {
     init_heap();
     let kernel = MemorySet::new_kernel();

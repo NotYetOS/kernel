@@ -38,7 +38,6 @@ lazy_static! {
     };
 }
 
-#[derive(Clone)]
 pub struct FrameTracker(PhysPageNum);
 
 impl FrameTracker {
