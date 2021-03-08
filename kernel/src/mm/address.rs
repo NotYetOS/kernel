@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+// use marco to improve the code
 macro_rules! impl_debug {
     ($target: ty) => {
         impl Debug for $target {
@@ -10,7 +11,6 @@ macro_rules! impl_debug {
     };
 }
 
-// use marco to improve the code
 macro_rules! impl_into {
     ($from: ty => usize) => {
         impl From<$from> for usize {
@@ -61,13 +61,13 @@ use super::PageTableEntry;
 #[derive(Clone, Copy)]
 pub struct VirtAddr(usize);
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 pub struct VirtPageNum(usize);
 
 #[derive(Clone, Copy)]
 pub struct PhysAddr(usize);
 
-#[derive(Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 pub struct PhysPageNum(usize);
 
 impl VirtAddr {
@@ -89,6 +89,10 @@ impl VirtPageNum {
             vpn >>= 9; 
         }
         ret
+    }
+
+    pub fn value(&self) -> usize {
+        self.0
     }
 }
 
@@ -149,13 +153,73 @@ impl Sub<usize> for PhysPageNum {
 
 impl AddAssign<usize> for PhysPageNum {
     fn add_assign(&mut self, rhs: usize) {
-        self.0 + rhs;
+        self.0 += rhs;
     }
 }
 
 impl SubAssign<usize> for PhysPageNum {
     fn sub_assign(&mut self, rhs: usize) {
-        self.0 - rhs;
+        self.0 -= rhs;
+    }
+}
+
+impl Add<usize> for VirtPageNum {
+    type Output = VirtPageNum;
+
+    fn add(self, rhs: usize) -> Self::Output {
+        (self.0 + rhs).into()
+    }
+}
+
+impl Sub<usize> for VirtPageNum {
+    type Output = VirtPageNum;
+
+    fn sub(self, rhs: usize) -> Self::Output {
+        (self.0 - rhs).into()
+    }
+}
+
+impl AddAssign<usize> for VirtPageNum {
+    fn add_assign(&mut self, rhs: usize) {
+        self.0 += rhs;
+    }
+}
+
+impl SubAssign<usize> for VirtPageNum {
+    fn sub_assign(&mut self, rhs: usize) {
+        self.0 -= rhs;
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct VPNRange {
+    current: VirtPageNum,
+    end: VirtPageNum, 
+}
+
+impl VPNRange {
+    pub fn new(start: VirtPageNum, end: VirtPageNum) -> Self {
+        Self {
+            current: start,
+            end,
+        }
+    }
+
+    pub fn current(&self) -> VirtPageNum {
+        self.current
+    }
+}
+
+impl Iterator for VPNRange {
+    type Item = VirtPageNum;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current < self.end {
+            self.current += 1;
+            Some(self.current - 1)
+        } else {
+            None
+        }
     }
 }
 

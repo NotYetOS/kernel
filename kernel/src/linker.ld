@@ -11,7 +11,6 @@ SECTIONS
     stext = .;
     .text : {
         *(.text.entry)
-        . = ALIGN(4K);
         *(.text .text.*)
     }
     etext = .;
@@ -34,10 +33,11 @@ SECTIONS
     
     . = ALIGN(4K);
 
+    sbss = .;
     sstack = .;
     .bss : {
         *(.bss.stack)
-        sbss = .;
+        estack = .;
         *(.bss .bss.*)
     }
     ebss = .;

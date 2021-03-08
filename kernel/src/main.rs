@@ -29,11 +29,11 @@ extern crate alloc;
 #[no_mangle]
 fn clear_bss() {
     extern "C" {
-        fn sbss();
+        fn estack();
         fn ebss();
     }
 
-    (sbss as usize..ebss as usize).for_each(|addr| 
+    (estack as usize..ebss as usize).for_each(|addr| 
         unsafe { 
             (addr as *mut u8).write_volatile(0) 
         }
@@ -44,7 +44,10 @@ fn clear_bss() {
 // let the call command find main function
 #[no_mangle]
 fn main() {
-    mm::init_heap();
+    mm::init();
+
+    println!("");
+    println!("this is sos");
     println!("wow, i'm stupid");
     panic!("emm, to panic");
 }

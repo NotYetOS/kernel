@@ -8,7 +8,10 @@ use super::{
     PTEFlags,
     frame_alloc,
 };
-use alloc::vec::Vec;
+use alloc::{
+    vec,
+    vec::Vec
+};
 
 // define mode, Sv32 not impl, just look...
 pub enum Mode {
@@ -19,13 +22,21 @@ pub enum Mode {
     Sv39 = 8
 }
 
-struct PageTable {
+pub struct PageTable {
     root: PhysPageNum,
     frames: Vec<FrameTracker>
 }
 
 impl PageTable {
-    fn satp_bits(&self, mode: Mode) -> usize {
+    pub fn new() -> Self {
+        let frame = frame_alloc();
+        Self {
+            root: frame.ppn(),
+            frames: vec![frame]
+        }
+    }
+
+    pub fn satp_bits(&self, mode: Mode) -> usize {
         (mode as usize) << 60 | usize::from(self.root)
     }
 
@@ -47,7 +58,7 @@ impl PageTable {
             let pte = &mut ppn.get_ptes()[i];
             if !pte.is_valid() {
                 let f = frame_alloc();
-                *pte = PageTableEntry::new(f.clone().into(), PTEFlags::V);
+                *pte = PageTableEntry::new(f.ppn(), PTEFlags::V);
                 self.frames.push(f);
             }
             ppn = pte.ppn();
@@ -55,16 +66,20 @@ impl PageTable {
         Some(&mut ppn.get_ptes()[indexes[2]])
     }
 
-    fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum) {
+    pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
+        self.find_pte(vpn).map(|pte| pte.clone())
+    }
+
+    pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) {
         let pte = match self.find_pte_by_create(vpn) {
             Some(pte) => pte,
             None => unreachable!()
         };
         assert!(!pte.is_valid(), "{:?} is invalid before unmapping", vpn);
-        *pte = PageTableEntry::new(ppn, PTEFlags::V);
+        *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
     }
 
-    fn unmap(&mut self, vpn: VirtPageNum) {
+    pub fn unmap(&mut self, vpn: VirtPageNum) {
         let pte = match self.find_pte_by_create(vpn) {
             Some(pte) => pte,
             None => unreachable!()

@@ -32,14 +32,20 @@ lazy_static! {
         extern "C" {
             fn ekernel();
         }
-        let start = PhysAddr::from(ekernel as usize).ceil();
-        let end = PhysAddr::from(MEMORY_END).floor();
+        let start = PhysAddr::from(ekernel as usize).floor();
+        let end = PhysAddr::from(MEMORY_END).ceil();
         Mutex::new(FrameAllocator::new(start, end))
     };
 }
 
 #[derive(Clone)]
 pub struct FrameTracker(PhysPageNum);
+
+impl FrameTracker {
+    pub fn ppn(&self) -> PhysPageNum {
+        self.0.clone()
+    }
+}
 
 struct FrameAllocator {
     current: PhysPageNum,
@@ -81,12 +87,6 @@ impl From<PhysPageNum> for FrameTracker {
     }
 }
 
-impl From<FrameTracker> for PhysPageNum {
-    fn from(f: FrameTracker) -> Self {
-        f.0
-    }
-}
-
 pub fn frame_alloc() -> FrameTracker {
     match FRAME_ALL0CATOR.lock().alloc() {
         Some(f) => f,
@@ -98,8 +98,9 @@ pub fn frame_dealloc(ppn: PhysPageNum) {
     FRAME_ALL0CATOR.lock().dealloc(ppn)
 }
 
+// RAII
 impl Drop for FrameTracker {
     fn drop(&mut self) {
-        frame_dealloc(self.0.into())
+        frame_dealloc(self.ppn())
     }
 }
