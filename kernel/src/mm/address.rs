@@ -5,7 +5,7 @@ macro_rules! impl_debug {
     ($target: ty) => {
         impl Debug for $target {
             fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                f.write_fmt(format_args!("{}:{:#x}", stringify!($target), self.0))
+                f.write_fmt(format_args!("{}: {:#x}", stringify!($target), self.0))
             }
         }
     };
@@ -75,8 +75,16 @@ impl VirtAddr {
         VirtPageNum(self.0 / PAGE_SIZE) 
     }
     
+    // if VirtAddr % PAGE_SIZE == 0
+    // VirtPageNum = VirtAddr / PAGE_SIZE
+    // else
+    // VirtPageNum = VirtAddr / PAGE_SIZE + 1
     pub fn ceil(&self) -> VirtPageNum { 
-        VirtPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE) 
+        if self.0 % PAGE_SIZE == 0 {
+            self.floor()
+        } else {
+            self.floor() + 1
+        }
     }
 }
 
@@ -101,8 +109,16 @@ impl PhysAddr {
         PhysPageNum(self.0 / PAGE_SIZE) 
     }
     
+    // if PhysAddr % PAGE_SIZE == 0
+    // PhysPageNum = PhysAddr / PAGE_SIZE
+    // else
+    // PhysPageNum = PhysAddr / PAGE_SIZE + 1
     pub fn ceil(&self) -> PhysPageNum { 
-        PhysPageNum((self.0 - 1 + PAGE_SIZE) / PAGE_SIZE) 
+        if self.0 % PAGE_SIZE == 0 {
+            self.floor()
+        } else {
+            self.floor() + 1
+        }
     }
 }
 
