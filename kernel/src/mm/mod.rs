@@ -5,11 +5,24 @@ mod table;
 mod allocators;
 mod set;
 
+use spin::Mutex;
+use alloc::sync::Arc;
+use lazy_static::lazy_static;
+
+lazy_static! {
+    pub static ref KERNEL_SPACE: Arc<Mutex<MemorySet>> = Arc::new(Mutex::new(
+        MemorySet::new_kernel()
+    ));
+}
+
 // map sections and activate Sv39
 pub fn init() {
     init_heap();
-    let kernel = MemorySet::new_kernel();
-    kernel.activate(Mode::Sv39);
+    KERNEL_SPACE.lock().activate(Mode::Sv39);
+}
+
+pub fn kernel_satp() -> usize {
+    KERNEL_SPACE.lock().satp_bits()
 }
 
 // to export

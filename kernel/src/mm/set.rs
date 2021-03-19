@@ -45,6 +45,10 @@ impl MemorySet {
         }
     }
 
+    pub fn satp_bits(&self) -> usize {
+        self.table.satp_bits(Mode::Sv39)
+    }
+
     fn push(&mut self, mut area: MapArea, data: Option<&[u8]>) {
         area.map(&mut self.table);
         if let Some(data) = data {
@@ -74,6 +78,16 @@ impl MemorySet {
         println!(".rodata [{:#x}, {:#x})", srodata as usize, erodata as usize);
         println!(".data [{:#x}, {:#x})", sdata as usize, edata as usize);
         println!(".bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
+
+        println!("mapping mmio");
+        for (start, size) in MMIO {
+            set.push(MapArea::new(
+                (*start).into(), 
+                (*start + *size).into(), 
+                MapType::Identical, 
+                MapPermission::R | MapPermission::W
+            ), None);
+        }
 
         println!("mapping .text section");
         set.push(

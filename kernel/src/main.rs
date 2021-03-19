@@ -21,6 +21,8 @@ mod panic;
 mod sbi;
 mod mm;
 mod config;
+mod drivers;
+mod fs;
 
 #[macro_use]
 extern crate bitflags;
@@ -45,9 +47,10 @@ fn clear_bss() {
 #[no_mangle]
 fn main() {
     mm::init();
+    fs::fefs_test();
 
     println!("");
-    println!("this is sos");
+    println!("this is NotYetOS");
     println!("wow, i'm stupid");
     panic!("emm, to panic");
 }

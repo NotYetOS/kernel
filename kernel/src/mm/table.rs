@@ -2,11 +2,13 @@
 
 use super::{
     FrameTracker, 
-    PageTableEntry,
-    PhysPageNum,
+    PTEFlags, 
+    PageTableEntry, 
+    PhysAddr, 
+    PhysPageNum, 
+    VirtAddr, 
     VirtPageNum, 
-    PTEFlags,
-    frame_alloc,
+    frame_alloc
 };
 use alloc::{
     vec,
@@ -33,6 +35,13 @@ impl PageTable {
         Self {
             root: frame.ppn(),
             frames: vec![frame]
+        }
+    }
+
+    pub fn from_satp(satp: usize) -> Self {
+        Self {
+            root: PhysPageNum::from(satp & ((1usize << 44) - 1)),
+            frames: Vec::new(),
         }
     }
 
@@ -68,6 +77,15 @@ impl PageTable {
 
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.find_pte(vpn).map(|pte| pte.clone())
+    }
+
+    pub fn translate_va_to_pa(&self, va: VirtAddr) -> Option<PhysAddr> {
+        self.find_pte(va.into()).map(|pte| {
+            let aligned_pa: PhysAddr = pte.ppn().into();
+            let offset = va.page_offset();
+            let aligned_pa_usize: usize = aligned_pa.into();
+            (aligned_pa_usize + offset).into()
+        })
     }
 
     pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) {

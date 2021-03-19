@@ -59,18 +59,26 @@ use crate::config::*;
 use super::PageTableEntry;
 
 #[derive(Clone, Copy)]
+#[repr(C)]
 pub struct VirtAddr(usize);
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+#[repr(C)]
 pub struct VirtPageNum(usize);
 
 #[derive(Clone, Copy)]
+#[repr(C)]
 pub struct PhysAddr(usize);
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+#[repr(C)]
 pub struct PhysPageNum(usize);
 
 impl VirtAddr {
+    pub fn value(&self) -> usize {
+        self.0
+    }
+
     pub fn floor(&self) -> VirtPageNum { 
         VirtPageNum(self.0 / PAGE_SIZE) 
     }
@@ -85,6 +93,14 @@ impl VirtAddr {
         } else {
             self.floor() + 1
         }
+    }
+
+    pub fn page_offset(&self) -> usize { 
+        self.0 & (PAGE_SIZE - 1) 
+    }
+
+    pub fn aligned(&self) -> bool { 
+        self.page_offset() == 0
     }
 }
 
@@ -105,6 +121,10 @@ impl VirtPageNum {
 }
 
 impl PhysAddr {
+    pub fn value(&self) -> usize {
+        self.0
+    }
+
     pub fn floor(&self) -> PhysPageNum { 
         PhysPageNum(self.0 / PAGE_SIZE) 
     }
@@ -119,6 +139,14 @@ impl PhysAddr {
         } else {
             self.floor() + 1
         }
+    }
+
+    pub fn page_offset(&self) -> usize { 
+        self.0 & (PAGE_SIZE - 1) 
+    }
+
+    pub fn aligned(&self) -> bool { 
+        self.page_offset() == 0
     }
 }
 
@@ -214,7 +242,10 @@ pub struct VPNRange {
 }
 
 impl VPNRange {
-    pub fn new(start: VirtPageNum, end: VirtPageNum) -> Self {
+    pub fn new(
+        start: VirtPageNum, 
+        end: VirtPageNum
+    ) -> Self {
         Self {
             current: start,
             end,

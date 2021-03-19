@@ -18,3 +18,9 @@ features = ["spin_no_std"]
 [dependencies.riscv]
 git = "https://github.com/rcore-os/riscv"
 features = ["inline-asm"]
+
+[dependencies.virtio-drivers]
+git = "https://github.com/rcore-os/virtio-drivers"
+
+[dependencies.fefs]
+path = "../../fefs"
