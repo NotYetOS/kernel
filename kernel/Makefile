@@ -5,7 +5,7 @@ KERNEL_ELF := target/$(TARGET)/$(MODE)/kernel
 KERNEL_BIN := kernel.bin
 KERNEL_ENTRY := 0x80200000
 BOOTLOADER = rustsbi-qemu.bin
-FS_IMG = ../../fefs-tool/target/fs.img
+FS_IMG = ../../fefs-tool/fs.img
 
 build: 
 ifeq ($(MODE), debug)

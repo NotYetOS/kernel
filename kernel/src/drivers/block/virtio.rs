@@ -1,4 +1,6 @@
 use spin::Mutex;
+use lazy_static::lazy_static;
+use alloc::vec::Vec;
 use fefs::{
     BLOCK_SIZE, 
     device::BlockDevice
@@ -7,9 +9,6 @@ use virtio_drivers::{
     VirtIOBlk,
     VirtIOHeader
 };
-use lazy_static::lazy_static;
-use alloc::vec::Vec;
-
 use crate::mm::{
     FrameTracker, 
     PageTable, 
@@ -79,5 +78,8 @@ pub extern "C" fn virtio_phys_to_virt(paddr: PhysAddr) -> VirtAddr {
 
 #[no_mangle]
 pub extern "C" fn virtio_virt_to_phys(vaddr: VirtAddr) -> PhysAddr {
-    PageTable::from_satp(kernel_satp()).translate_va_to_pa(vaddr).unwrap()
+    match PageTable::from_satp(kernel_satp()).translate_va_to_pa(vaddr) {
+        Some(pa) => pa,
+        None => panic!("It wasn't supposed to happen")
+    }
 }

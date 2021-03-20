@@ -79,6 +79,9 @@ impl PageTable {
         self.find_pte(vpn).map(|pte| pte.clone())
     }
 
+    // need to align
+    // example(Identical map):
+    // if va is 0x80120066, pa is 0x80120000 + 0x66
     pub fn translate_va_to_pa(&self, va: VirtAddr) -> Option<PhysAddr> {
         self.find_pte(va.into()).map(|pte| {
             let aligned_pa: PhysAddr = pte.ppn().into();
