@@ -5,7 +5,7 @@ KERNEL_ELF := target/$(TARGET)/$(MODE)/kernel
 KERNEL_BIN := kernel.bin
 KERNEL_ENTRY := 0x80200000
 BOOTLOADER = rustsbi-qemu.bin
-FS_IMG = ../../fefs-tool/fs.img
+FS_IMG = ../fefs-tool/fs.img
 
 build: 
 ifeq ($(MODE), debug)
@@ -13,7 +13,7 @@ ifeq ($(MODE), debug)
 else
 	@cargo build --release
 endif
-	@@cd ../../fefs-tool && cargo run --release
+	@@cd ../fefs-tool && cargo run --release
 
 to_bin: build
 	@llvm-objcopy $(KERNEL_ELF) $(KERNEL_BIN)

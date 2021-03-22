@@ -23,4 +23,4 @@ features = ["inline-asm"]
 git = "https://github.com/rcore-os/virtio-drivers"
 
 [dependencies.fefs]
-path = "../../fefs"
+path = "../fefs"
