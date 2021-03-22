@@ -10,7 +10,7 @@ lazy_static! {
         let fs = FileSystem::open(BLOCK_DEVICE.clone());
         let fs = fs.lock();
         let root = fs.root();
-        Arc::new(Mutex::new(root))
+        Arc::new(Mutex::new(root)) 
     };
 }
 
@@ -46,7 +46,7 @@ pub fn fefs_test() {
     let len = file.read(&mut buf).unwrap();
     let ret = core::str::from_utf8(&buf[0..len]).unwrap();
     assert_eq!(ret, "");
-    
+
     assert_eq!(file.seek(str_len + 1).err().unwrap(), FileError::SeekValueOverFlow);
 
     println!("{:#?}", dir.ls());
@@ -57,5 +57,5 @@ pub fn fefs_test() {
 
     root.mkdir("fefs").unwrap();
     println!("{:#?}", root.ls());
-    println!("tests passed");
+    println!("fefs tests passed");
 }

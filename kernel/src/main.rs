@@ -13,7 +13,7 @@
 #![feature(alloc_error_handler)]
 
 // load entry.asm
-global_asm!(include_str!("entry.asm"));
+global_asm!(include_str!("entry.s"));
 
 #[macro_use]
 mod console;
@@ -23,6 +23,7 @@ mod mm;
 mod config;
 mod drivers;
 mod fs;
+mod trap;
 
 #[macro_use]
 extern crate bitflags;
@@ -46,11 +47,17 @@ fn clear_bss() {
 // let the call command find main function
 #[no_mangle]
 fn main() {
+    println!("this is NotYetOS");
+    println!("wow, i'm stupid");
+    trap::enable();
+    trap::user_mode_trap_test();
+}
+
+fn then() {
     mm::init();
     fs::fefs_test();
 
     println!("");
-    println!("this is NotYetOS");
     println!("wow, i'm stupid");
     panic!("emm, to panic");
 }

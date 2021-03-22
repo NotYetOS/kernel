@@ -73,7 +73,8 @@ impl MemorySet {
             fn ebss();
             fn ekernel();
         }
-
+        
+        println!("");
         println!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
         println!(".rodata [{:#x}, {:#x})", srodata as usize, erodata as usize);
         println!(".data [{:#x}, {:#x})", sdata as usize, edata as usize);

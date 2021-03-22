@@ -11,6 +11,7 @@ SECTIONS
     stext = .;
     .text : {
         *(.text.entry)
+        *(.text.trap)
         *(.text .text.*)
     }
     etext = .;
