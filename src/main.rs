@@ -47,6 +47,7 @@ fn clear_bss() {
 // let the call command find main function
 #[no_mangle]
 fn main() {
+    println!("你好世界");
     println!("this is NotYetOS");
     println!("wow, i'm stupid");
     trap::enable();

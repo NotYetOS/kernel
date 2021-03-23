@@ -34,7 +34,7 @@ fn sbicall(id: u8, args: [usize; 3]) -> super::ret::Ret {
     }
 }
 
-pub fn console_putchar(ch: char) {
+pub fn console_putchar(ch: u8) {
     sbicall(SBI_CONSOLE_PUTCHAR, [ch as usize, 0, 0]);
 }
 

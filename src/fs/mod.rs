@@ -55,7 +55,7 @@ pub fn fefs_test() {
     assert!(!root.exist("fefs"));
     assert_eq!(root.delete("fefs").err().unwrap(), DirError::NotFound);
 
-    root.mkdir("fefs").unwrap();
-    println!("{:#?}", root.ls());
+    let bin = root.cd("bin").unwrap();
+    println!("{:#?}", bin.ls());
     println!("fefs tests passed");
 }
