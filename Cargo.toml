@@ -10,6 +10,7 @@ edition = "2018"
 bitflags = "1.2.1"
 buddy_system_allocator = "0.7.0"
 spin = "0.7.0"
+xmas-elf = "0.7.0"
 
 [dependencies.lazy_static]
 version = "1.4.0"

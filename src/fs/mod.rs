@@ -3,6 +3,7 @@ use fefs::system::FileSystem;
 use lazy_static::lazy_static;
 use alloc::sync::Arc;
 use spin::Mutex;
+use alloc::vec::Vec;
 use crate::drivers::BLOCK_DEVICE;
 
 lazy_static! {
@@ -30,6 +31,8 @@ pub fn fefs_test() {
     assert!(dir.exist("tlnb"));
 
     let mut buf = [0; 10];
+    let mut vec_buf = Vec::new();
+
     let str_len = "hello fefs abc".len();
     file.write("hello fefs abc".as_bytes(), WriteType::OverWritten).unwrap();
     let len = file.read(&mut buf).unwrap();
@@ -38,15 +41,14 @@ pub fn fefs_test() {
     println!("{}", ret);
 
     file.seek(6).unwrap();
-    let len = file.read(&mut buf).unwrap();
-    let ret = core::str::from_utf8(&buf[0..len]).unwrap();
+    let len = file.read_to_vec(&mut vec_buf).unwrap();
+    let ret = core::str::from_utf8(&vec_buf[0..len]).unwrap();
     assert_eq!(ret, "fefs abc");
 
     file.seek(str_len).unwrap();
-    let len = file.read(&mut buf).unwrap();
-    let ret = core::str::from_utf8(&buf[0..len]).unwrap();
+    let len = file.read_to_vec(&mut vec_buf).unwrap();
+    let ret = core::str::from_utf8(&vec_buf[0..len]).unwrap();
     assert_eq!(ret, "");
-
     assert_eq!(file.seek(str_len + 1).err().unwrap(), FileError::SeekValueOverFlow);
 
     println!("{:#?}", dir.ls());
