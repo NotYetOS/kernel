@@ -24,6 +24,8 @@ mod config;
 mod drivers;
 mod fs;
 mod trap;
+mod process;
+mod task;
 
 #[macro_use]
 extern crate bitflags;
@@ -47,18 +49,21 @@ fn clear_bss() {
 // let the call command find main function
 #[no_mangle]
 fn main() {
-    println!("你好世界");
-    println!("this is NotYetOS");
-    println!("wow, i'm stupid");
-    trap::enable();
-    trap::user_mode_trap_test();
-}
-
-fn then() {
     mm::init();
-    fs::fefs_test();
+    trap::enable();
 
     println!("");
+    println!("你好世界");
+    println!("this is NotYetOS");
+
+    fs::fefs_test();
+    process::test();
+
+    //unsafe { asm! { "ebreak" } }
     println!("wow, i'm stupid");
     panic!("emm, to panic");
+}
+
+pub fn cao() {
+    println!("cao");
 }

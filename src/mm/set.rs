@@ -1,21 +1,41 @@
 #![allow(unused)]
 
-use alloc::{
-    collections::BTreeMap,
-    vec::Vec
-};
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
+use riscv::register::satp;
+use riscv::register::sstatus::SPP;
+use xmas_elf::ElfFile;
+use xmas_elf::program;
+use crate::config::*;
+use crate::trap::TrapContext;
 use super::{
     FrameTracker, 
     Mode, 
     PTEFlags, 
     PageTable, 
-    VPNRange, 
+    PhysAddr, 
+    VPNRange,
     VirtAddr, 
     VirtPageNum, 
     frame_alloc
 };
-use riscv::register::satp;
-use crate::config::*;
+
+extern "C" {
+    fn stext();
+    fn etext();
+    fn srodata();
+    fn erodata();
+    fn sdata();
+    fn edata();
+    fn sstack();
+    fn estack();
+    fn sbss();
+    fn ebss();
+    fn ekernel();
+    fn strampoline();
+    fn etrampoline();
+    fn _restore(cx: usize, satp: usize);
+}
 
 bitflags! {
     pub struct MapPermission: u8 {
@@ -57,23 +77,30 @@ impl MemorySet {
         self.areas.push(area);
     }
 
+    fn map_trampoline(&mut self) {
+        self.table.map(
+            VirtAddr::from(TRAMPOLINE).into(),
+            PhysAddr::from(strampoline as usize).into(),
+            PTEFlags::R | PTEFlags::X,
+        );
+    }
+
+    fn map_load(&mut self) {
+        extern "C" {
+            fn _load(satp: usize); 
+        }
+
+        self.table.map(
+            VirtAddr::from(_load as usize).into(),
+            PhysAddr::from(_load as usize).into(),
+            PTEFlags::R | PTEFlags::X,
+        );
+    }
+
     pub fn new_kernel() -> Self {
         let mut set = MemorySet::new();
+        set.map_trampoline();
 
-        extern "C" {
-            fn stext();
-            fn etext();
-            fn srodata();
-            fn erodata();
-            fn sdata();
-            fn edata();
-            fn sstack();
-            fn estack();
-            fn sbss();
-            fn ebss();
-            fn ekernel();
-        }
-        
         println!("");
         println!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
         println!(".rodata [{:#x}, {:#x})", srodata as usize, erodata as usize);
@@ -81,10 +108,10 @@ impl MemorySet {
         println!(".bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
 
         println!("mapping mmio");
-        for (start, size) in MMIO {
+        for &(start, size) in MMIO {
             set.push(MapArea::new(
-                (*start).into(), 
-                (*start + *size).into(), 
+                (start).into(), 
+                (start + size).into(), 
                 MapType::Identical, 
                 MapPermission::R | MapPermission::W
             ), None);
@@ -140,8 +167,118 @@ impl MemorySet {
             ), None
         );
 
+        let trap_context = TrapContext::init_trap_context(
+            SPP::Supervisor, 
+            0, 
+            set.satp_bits(),
+            0,
+            0,
+            0,
+            crate::trap::trap_handler as usize,
+        );
+
+        let trap_bytes = unsafe {
+            core::slice::from_raw_parts(
+                &trap_context as *const _ as *const u8, 
+                core::mem::size_of::<TrapContext>()
+            )
+        };
+
+        set.push(MapArea::new(
+            TRAP_CONTEXT.into(),
+            TRAMPOLINE.into(),
+            MapType::Alloc,
+            MapPermission::R | MapPermission::W,
+        ), Some(trap_bytes));
+
         set
     }
+
+    pub fn from_elf(mode: SPP, data: &[u8]) -> (Self, usize, usize, usize) {
+        let mut set = MemorySet::new();
+        set.map_trampoline();
+        set.map_load();
+
+        let elf = ElfFile::new(data).unwrap();
+        let elf_header_part1 = elf.header.pt1;
+        let elf_header_part2 = elf.header.pt2;
+        assert_eq!(elf_header_part1.magic, [0x7f, 0x45, 0x4c, 0x46], "invalid elf!");
+
+        let program_header_count = elf_header_part2.ph_count();
+        let mut end_vpn = VirtPageNum::new(0);
+
+        for idx in 0..program_header_count {
+            let program_header = elf.program_header(idx).unwrap();
+            match program_header.get_type() {
+                Ok(program::Type::Load) => {
+                    let start_va: VirtAddr = (program_header.virtual_addr() as usize).into();
+                    let end_va: VirtAddr = (start_va.value() + program_header.mem_size() as usize).into();
+                    let mut permission = MapPermission::U;
+                    let program_flags = program_header.flags();
+                    if program_flags.is_read() { permission |= MapPermission::R };
+                    if program_flags.is_write() { permission |= MapPermission::W };
+                    if program_flags.is_execute() { permission |= MapPermission::X };
+
+                    let area = MapArea::new(
+                        start_va,
+                        end_va,
+                        MapType::Alloc,
+                        permission,
+                    );
+
+                    end_vpn = area.range.get_end();
+                    let start = program_header.offset() as usize;
+                    let end = start + program_header.file_size() as usize;
+                    set.push(
+                        area, 
+                        Some(&elf.input[start..end])
+                    );
+                }
+                _ => { /* no need to impl */ }
+            }
+        }
+
+        let end_va: VirtAddr = end_vpn.into();
+        let mut user_stack_bottom = end_va.value();
+        user_stack_bottom += PAGE_SIZE;
+
+        let user_stack_top = user_stack_bottom + USER_STACK_SIZE;
+
+        set.push(MapArea::new(
+            user_stack_bottom.into(),
+            user_stack_top.into(),
+            MapType::Alloc,
+            MapPermission::R | MapPermission::W | MapPermission::U,
+        ), None);
+
+        let entry = elf_header_part2.entry_point() as usize;
+
+        let trap_context = TrapContext::init_trap_context(
+            mode, 
+            entry, 
+            set.satp_bits(),
+            user_stack_top,
+            crate::mm::kernel_satp(),
+            0,
+            crate::trap::trap_handler as usize
+        );
+
+        let trap_bytes = unsafe {
+            core::slice::from_raw_parts(
+                &trap_context as *const _ as *const u8, 
+                core::mem::size_of::<TrapContext>()
+            )
+        };
+
+        set.push(MapArea::new(
+            TRAP_CONTEXT.into(),
+            TRAMPOLINE.into(),
+            MapType::Alloc,
+            MapPermission::R | MapPermission::W,
+        ), Some(trap_bytes));
+
+        (set, user_stack_top, entry, mode as usize)
+    } 
 
     // activate Sv39
     pub fn activate(&self, mode: Mode) {
@@ -198,7 +335,7 @@ impl MapArea {
 
         for vpn in self.range {
             let frame = frame_alloc();
-            table.map(vpn, frame.ppn(),flags);
+            table.map(vpn, frame.ppn(), flags);
             self.allocated.insert(vpn, frame);
         }
     }

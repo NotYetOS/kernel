@@ -21,7 +21,9 @@ pub enum Mode {
     Bare = 0,
     #[allow(unused)]
     Sv32 = 1,
-    Sv39 = 8
+    Sv39 = 8,
+    #[allow(unused)]
+    Sv48 = 9
 }
 
 pub struct PageTable {
@@ -40,7 +42,7 @@ impl PageTable {
 
     pub fn from_satp(satp: usize) -> Self {
         Self {
-            root: PhysPageNum::from(satp & ((1usize << 44) - 1)),
+            root: PhysPageNum::from(satp & ((1 << 44) - 1)),
             frames: Vec::new(),
         }
     }
@@ -96,6 +98,7 @@ impl PageTable {
             Some(pte) => pte,
             None => unreachable!()
         };
+
         assert!(!pte.is_valid(), "{:?} is invalid before unmapping", vpn);
         *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
     }

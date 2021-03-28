@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use crate::config::*;
+
 use super::context::TrapContext;
 use riscv::register::sstatus::{
     self,
@@ -22,19 +24,22 @@ use riscv::register::scause::{
 global_asm!(include_str!("trap.s"));
 
 #[no_mangle]
-pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
+pub fn trap_handler() {
     let scause = scause::read();
+    println!("{:?}", scause.cause());
+    panic!();
+    let mut cx = unsafe {
+        (TRAP_CONTEXT as *mut TrapContext).as_mut().unwrap()
+    };
 
     if scause.is_interrupt() {
-        interruptr_handler(scause, cx);
+        interrupt_handler(scause, cx);
     } else {
         exception_handler(scause, cx);
     }
-    
-    cx
 }
 
-fn interruptr_handler(cause: Scause, cx: &mut TrapContext) {
+fn interrupt_handler(cause: Scause, cx: &mut TrapContext) {
     let stval = stval::read();
 
     // if interrupt happened, sepc value is the next pc where the interrupt happened

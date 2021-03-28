@@ -11,7 +11,13 @@ SECTIONS
     stext = .;
     .text : {
         *(.text.entry)
-        *(.text.trap)
+        . = ALIGN(4K);
+
+        strampoline = .;
+        *(.text.trampoline);
+        . = ALIGN(4K);
+        etrampoline = .;
+
         *(.text .text.*)
     }
     etext = .;

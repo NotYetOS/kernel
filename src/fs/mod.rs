@@ -51,8 +51,6 @@ pub fn fefs_test() {
     assert_eq!(ret, "");
     assert_eq!(file.seek(str_len + 1).err().unwrap(), FileError::SeekValueOverFlow);
 
-    println!("{:#?}", dir.ls());
-
     root.delete("fefs").unwrap();
     assert!(!root.exist("fefs"));
     assert_eq!(root.delete("fefs").err().unwrap(), DirError::NotFound);

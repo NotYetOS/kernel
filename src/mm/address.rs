@@ -62,18 +62,6 @@ use super::PageTableEntry;
 #[repr(C)]
 pub struct VirtAddr(usize);
 
-#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
-#[repr(C)]
-pub struct VirtPageNum(usize);
-
-#[derive(Clone, Copy)]
-#[repr(C)]
-pub struct PhysAddr(usize);
-
-#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
-#[repr(C)]
-pub struct PhysPageNum(usize);
-
 impl VirtAddr {
     pub fn value(&self) -> usize {
         self.0
@@ -104,7 +92,15 @@ impl VirtAddr {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+#[repr(C)]
+pub struct VirtPageNum(usize);
+
 impl VirtPageNum {
+    pub fn new(value: usize) -> Self {
+        Self(value)
+    }
+
     pub fn indexes(&self) -> [usize; 3] {
         let mut vpn = self.0;
         let mut ret = [0; 3];
@@ -119,6 +115,10 @@ impl VirtPageNum {
         self.0
     }
 }
+
+#[derive(Clone, Copy)]
+#[repr(C)]
+pub struct PhysAddr(usize);
 
 impl PhysAddr {
     pub fn value(&self) -> usize {
@@ -149,6 +149,10 @@ impl PhysAddr {
         self.page_offset() == 0
     }
 }
+
+#[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+#[repr(C)]
+pub struct PhysPageNum(usize);
 
 impl PhysPageNum {
     pub fn get_ptes(&self) -> &'static mut [PageTableEntry] {
@@ -254,6 +258,10 @@ impl VPNRange {
 
     pub fn current(&self) -> VirtPageNum {
         self.current
+    }
+
+    pub fn get_end(&self) -> VirtPageNum {
+        self.end
     }
 }
 
