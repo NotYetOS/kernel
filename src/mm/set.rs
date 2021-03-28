@@ -34,7 +34,6 @@ extern "C" {
     fn ekernel();
     fn strampoline();
     fn etrampoline();
-    fn _restore(cx: usize, satp: usize);
 }
 
 bitflags! {
@@ -85,14 +84,21 @@ impl MemorySet {
         );
     }
 
-    fn map_load(&mut self) {
+    fn map_load_and_restore(&mut self) {
         extern "C" {
             fn _load(satp: usize); 
+            fn _restore(); 
         }
 
         self.table.map(
             VirtAddr::from(_load as usize).into(),
             PhysAddr::from(_load as usize).into(),
+            PTEFlags::R | PTEFlags::X,
+        );
+
+        self.table.map(
+            VirtAddr::from(_restore as usize).into(),
+            PhysAddr::from(_restore as usize).into(),
             PTEFlags::R | PTEFlags::X,
         );
     }
@@ -170,9 +176,9 @@ impl MemorySet {
         let trap_context = TrapContext::init_trap_context(
             SPP::Supervisor, 
             0, 
+            0,
+            0,
             set.satp_bits(),
-            0,
-            0,
             0,
             crate::trap::trap_handler as usize,
         );
@@ -197,7 +203,7 @@ impl MemorySet {
     pub fn from_elf(mode: SPP, data: &[u8]) -> (Self, usize, usize, usize) {
         let mut set = MemorySet::new();
         set.map_trampoline();
-        set.map_load();
+        set.map_load_and_restore();
 
         let elf = ElfFile::new(data).unwrap();
         let elf_header_part1 = elf.header.pt1;

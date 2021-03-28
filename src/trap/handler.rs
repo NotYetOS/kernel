@@ -23,11 +23,14 @@ use riscv::register::scause::{
 
 global_asm!(include_str!("trap.s"));
 
+extern "C" { 
+    fn _restore(); 
+}
+
 #[no_mangle]
 pub fn trap_handler() {
     let scause = scause::read();
     println!("{:?}", scause.cause());
-    panic!();
     let mut cx = unsafe {
         (TRAP_CONTEXT as *mut TrapContext).as_mut().unwrap()
     };
@@ -37,6 +40,8 @@ pub fn trap_handler() {
     } else {
         exception_handler(scause, cx);
     }
+
+    unsafe { _restore() };
 }
 
 fn interrupt_handler(cause: Scause, cx: &mut TrapContext) {
@@ -66,11 +71,7 @@ fn exception_handler(cause: Scause, cx: &mut TrapContext) {
         Trap::Exception(Exception::InstructionFault) => {},
         Trap::Exception(Exception::IllegalInstruction) => {},
         Trap::Exception(Exception::Breakpoint) => {
-            println!("hello user ebreak");
-            println!("ready switch from user to supervisor");
-            let mut sstatus = sstatus::read();
-            sstatus.set_spp(SPP::Supervisor);
-            cx.sstatus = sstatus;
+            println!("ebreak");
         },  
         Trap::Exception(Exception::LoadFault) => {},
         Trap::Exception(Exception::StoreMisaligned) => {},

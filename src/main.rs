@@ -57,9 +57,9 @@ fn main() {
     println!("this is NotYetOS");
 
     fs::fefs_test();
+    unsafe { asm! { "ebreak" } }
     process::test();
 
-    //unsafe { asm! { "ebreak" } }
     println!("wow, i'm stupid");
     panic!("emm, to panic");
 }

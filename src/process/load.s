@@ -3,9 +3,9 @@
     ld x\n, \n*8(sp)
 .endm
 
-    .section .text.load
-    .global _load
-    .align 4
+.section .text.load
+.global _load
+.align 4
 
 _load: 
     mv t0, sp
