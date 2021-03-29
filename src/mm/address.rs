@@ -148,6 +148,12 @@ impl PhysAddr {
     pub fn aligned(&self) -> bool { 
         self.page_offset() == 0
     }
+
+    pub fn get_mut<T>(&self) -> &'static mut T {
+        unsafe {
+            (self.0 as *mut T).as_mut().unwrap()
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
@@ -177,9 +183,7 @@ impl PhysPageNum {
 
     pub fn get_mut<T>(&self) -> &'static mut T {
         let pa: PhysAddr = self.clone().into();
-        unsafe {
-            (pa.0 as *mut T).as_mut().unwrap()
-        }
+        pa.get_mut::<T>()
     }
 }
 

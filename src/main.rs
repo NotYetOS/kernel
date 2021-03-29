@@ -26,6 +26,7 @@ mod fs;
 mod trap;
 mod process;
 mod task;
+mod syscall;
 
 #[macro_use]
 extern crate bitflags;
@@ -62,8 +63,4 @@ fn main() {
 
     println!("wow, i'm stupid");
     panic!("emm, to panic");
-}
-
-pub fn cao() {
-    println!("cao");
 }

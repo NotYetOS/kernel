@@ -10,7 +10,7 @@ pub fn test() {
         run
     };
 
-    let path = "easy_su";
+    let path = "hello";
     let task = TaskUnit::new(path);
     let process = ProcessUnit::new(
         task

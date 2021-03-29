@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use alloc::string::String;
 use super::{
     FrameTracker, 
     PTEFlags, 
@@ -111,4 +112,19 @@ impl PageTable {
         assert!(pte.is_valid(), "{:?} is invalid before unmapping", vpn);
         *pte = PageTableEntry::empty();
     }
+}
+
+pub fn translated_str(satp: usize, ptr: *const u8, len: usize) -> String {
+    let page_table = PageTable::from_satp(satp);
+    let mut vec_str = Vec::new();
+    let mut va = ptr as usize;
+    
+    for _ in 0..len {
+        let pa = page_table.translate_va_to_pa(VirtAddr::from(va)).unwrap();
+        let ch = *pa.get_mut::<u8>();
+        vec_str.push(ch);
+        va += 1;
+    }
+    
+    String::from_utf8(vec_str).unwrap()
 }

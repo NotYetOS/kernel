@@ -97,6 +97,12 @@ impl MemorySet {
         );
 
         self.table.map(
+            VirtAddr::from(_load as usize + PAGE_SIZE).into(),
+            PhysAddr::from(_load as usize + PAGE_SIZE).into(),
+            PTEFlags::R | PTEFlags::X,
+        );
+
+        self.table.map(
             VirtAddr::from(_restore as usize).into(),
             PhysAddr::from(_restore as usize).into(),
             PTEFlags::R | PTEFlags::X,
