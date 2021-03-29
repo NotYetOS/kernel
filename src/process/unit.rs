@@ -16,6 +16,10 @@ impl ProcessUnit {
     pub fn task_unit(&self) -> &TaskUnit {
         &self.task_unit
     }
+
+    pub fn set_zombie(&mut self) {
+        self.status = TaskStatus::Zombie
+    }
 }
 
 pub enum TaskStatus {

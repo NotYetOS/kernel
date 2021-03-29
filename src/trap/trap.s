@@ -75,7 +75,7 @@ _restore:
     .set n, 5
     .rept 27
         LOAD %n
-        .set n, n+1
+        .set n, n + 1
     .endr
 
     ld sp, 2*8(sp)
