@@ -21,7 +21,9 @@ pub fn test() {
     use fefs::file::FileError;
     
     println!("");
-    println!("this is fefs tests");
+    println!("[test] fefs");
+    println!("----------------------->");
+
     let mut root = ROOT.lock();
 
     root.mkdir("fefs").unwrap();
@@ -57,5 +59,6 @@ pub fn test() {
 
     let bin = root.cd("bin").unwrap();
     println!("{:#?}", bin.ls());
-    println!("fefs tests passed");
+    println!("<-----------------------");
+    println!("[passed] fefs test");
 }

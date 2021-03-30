@@ -7,7 +7,7 @@
     ld x\n, \n*8(sp)
 .endm
 
-.section .text.trampoline
+.section .text.asm
 .global _trap_entry
 .global _restore
 
@@ -16,7 +16,7 @@
 
 _trap_entry: 
     csrw sscratch, sp
-    li sp, 0xffffffffffffe000
+    li sp, 0xfffffffffffff000
 
     sd x1, 1*8(sp)
     .set n, 3
@@ -59,7 +59,7 @@ _from_kernel:
     jr t2
 
 _restore:
-    li sp, 0xffffffffffffe000
+    li sp, 0xfffffffffffff000
     ld t0, 34*8(sp)
     csrw satp, t0
     sfence.vma

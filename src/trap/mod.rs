@@ -4,12 +4,11 @@ mod context;
 pub fn enable() {
     use riscv::register::stvec::TrapMode;
     use riscv::register::stvec;
-    use crate::config::*;
 
     extern "C" { fn _trap_entry(); }
 
     unsafe {
-        stvec::write(TRAMPOLINE, TrapMode::Direct);
+        stvec::write(_trap_entry as usize, TrapMode::Direct);
     }
 }
 
@@ -18,7 +17,7 @@ pub fn get_satp() -> usize {
     unsafe {
         asm!(
             "
-            li t1, 0xffffffffffffe000
+            li t1, 0xfffffffffffff000
             ld t2, 34*8(t1)
             ",
             lateout("t2") satp
@@ -29,11 +28,13 @@ pub fn get_satp() -> usize {
 
 pub fn test() {
     println!("");
-    println!("this is trap test");
+    println!("[test] trap");
+    println!("----------------------->");
 
     unsafe { asm! { "ebreak" } }
-    
-    println!("trap test passed");
+
+    println!("<-----------------------");
+    println!("[passed] trap test");
 }
 
 pub use context::TrapContext;

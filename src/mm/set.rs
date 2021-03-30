@@ -32,8 +32,8 @@ extern "C" {
     fn sbss();
     fn ebss();
     fn ekernel();
-    fn strampoline();
-    fn etrampoline();
+    fn sasm();
+    fn easm();
 }
 
 bitflags! {
@@ -76,42 +76,8 @@ impl MemorySet {
         self.areas.push(area);
     }
 
-    fn map_trampoline(&mut self) {
-        self.table.map(
-            VirtAddr::from(TRAMPOLINE).into(),
-            PhysAddr::from(strampoline as usize).into(),
-            PTEFlags::R | PTEFlags::X,
-        );
-    }
-
-    fn map_load_and_restore(&mut self) {
-        extern "C" {
-            fn _load(satp: usize); 
-            fn _restore(); 
-        }
-
-        self.table.map(
-            VirtAddr::from(_load as usize).into(),
-            PhysAddr::from(_load as usize).into(),
-            PTEFlags::R | PTEFlags::X,
-        );
-
-        self.table.map(
-            VirtAddr::from(_load as usize + PAGE_SIZE).into(),
-            PhysAddr::from(_load as usize + PAGE_SIZE).into(),
-            PTEFlags::R | PTEFlags::X,
-        );
-
-        self.table.map(
-            VirtAddr::from(_restore as usize).into(),
-            PhysAddr::from(_restore as usize).into(),
-            PTEFlags::R | PTEFlags::X,
-        );
-    }
-
     pub fn new_kernel() -> Self {
         let mut set = MemorySet::new();
-        set.map_trampoline();
 
         println!("");
         println!(".text [{:#x}, {:#x})", stext as usize, etext as usize);
@@ -198,7 +164,7 @@ impl MemorySet {
 
         set.push(MapArea::new(
             TRAP_CONTEXT.into(),
-            TRAMPOLINE.into(),
+            usize::MAX.into(),
             MapType::Alloc,
             MapPermission::R | MapPermission::W,
         ), Some(trap_bytes));
@@ -208,8 +174,15 @@ impl MemorySet {
 
     pub fn from_elf(mode: SPP, data: &[u8]) -> (Self, usize, usize, usize) {
         let mut set = MemorySet::new();
-        set.map_trampoline();
-        set.map_load_and_restore();
+
+        set.push(
+            MapArea::new(
+                (sasm as usize).into(),
+                (easm as usize).into(), 
+                MapType::Identical, 
+                MapPermission::R | MapPermission::X
+            ), None
+        );
 
         let elf = ElfFile::new(data).unwrap();
         let elf_header_part1 = elf.header.pt1;
@@ -284,7 +257,7 @@ impl MemorySet {
 
         set.push(MapArea::new(
             TRAP_CONTEXT.into(),
-            TRAMPOLINE.into(),
+            usize::MAX.into(),
             MapType::Alloc,
             MapPermission::R | MapPermission::W,
         ), Some(trap_bytes));

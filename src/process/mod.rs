@@ -11,8 +11,8 @@ pub fn test() {
     use alloc::vec::Vec;
     
     println!("");
-    println!("this is process tests");
-
+    println!("[test] process");
+    println!("----------------------->");
     let mut elf_data = Vec::new();
     let bin_dir = ROOT.lock().cd("bin").unwrap();
     for node in bin_dir.ls() {
@@ -29,7 +29,8 @@ pub fn test() {
     }
 
     run();
-    println!("process tests passed");
+    println!("<-----------------------");
+    println!("[passed] process test");
 }
 
 pub use manager::*;

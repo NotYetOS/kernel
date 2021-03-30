@@ -7,14 +7,14 @@
     ld x\n, \n*8(sp)
 .endm
 
-.section .text.process
+.section .text.asm
 .global _load
 .global _exit
 .align 4
 
 _load: 
     csrw sscratch, sp
-    li sp, 0xffffffffffffe000
+    li sp, 0xfffffffffffff000
 
     sd x1, 1*8(sp)
     .set n, 3
@@ -60,7 +60,7 @@ _load:
     sret
     
 _exit: 
-    li sp, 0xffffffffffffe000
+    li sp, 0xfffffffffffff000
 
     ld t0, 32*8(sp)
     ld t1, 33*8(sp)

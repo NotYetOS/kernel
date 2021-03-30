@@ -13,10 +13,10 @@ SECTIONS
         *(.text.entry)
         . = ALIGN(4K);
 
-        strampoline = .;
-        *(.text.trampoline);
+        sasm = .;
+        *(.text.asm);
         . = ALIGN(4K);
-        etrampoline = .;
+        easm = .;
 
         *(.text .text.*)
     }
