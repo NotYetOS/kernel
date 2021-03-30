@@ -21,13 +21,23 @@ impl ProcessUnit {
         self.status = TaskStatus::Zombie
     }
 
+    pub fn set_suspend(&mut self) {
+        self.status = TaskStatus::Zombie
+    }
+
     pub fn set_running(&mut self) {
         self.status = TaskStatus::Running
     }
+
+    pub fn status(&self) -> TaskStatus {
+        self.status
+    }
 }
 
+#[derive(Clone, Copy)]
 pub enum TaskStatus {
     Ready,
     Running,
     Zombie,
+    Suspend
 }

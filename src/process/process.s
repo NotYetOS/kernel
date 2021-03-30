@@ -56,10 +56,9 @@ _load:
 
     mv sp, t0
     li t0, 0
-
     sret
     
-_exit: 
+_return: 
     li sp, 0xfffffffffffff000
 
     ld t0, 32*8(sp)

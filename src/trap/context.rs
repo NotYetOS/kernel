@@ -4,12 +4,12 @@ use riscv::register::sstatus::SPP;
 pub struct TrapContext {
     pub x: [usize; 32],
     // save status, like privilege mode
-    pub sstatus: usize,
+    sstatus: usize,
     pub sepc: usize,
-    pub satp: usize,
-    pub kernel_satp: usize,
-    pub kernel_sp: usize,
-    pub trap_handler: usize,
+    satp: usize,
+    kernel_satp: usize,
+    kernel_sp: usize,
+    trap_handler: usize,
     spp: usize
 }
 

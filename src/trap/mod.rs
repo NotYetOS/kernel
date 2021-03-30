@@ -13,15 +13,15 @@ pub fn enable() {
 }
 
 pub fn get_satp() -> usize {
+    use crate::config::TRAP_CONTEXT;
     let mut satp: usize;
+    
     unsafe {
         asm!(
-            "
-            li t1, 0xfffffffffffff000
-            ld t2, 34*8(t1)
-            ",
-            lateout("t2") satp
-        )
+            "ld {1}, 34*8({0})",
+            in(reg) TRAP_CONTEXT,
+            out(reg) satp
+        );
     }
     satp
 }
