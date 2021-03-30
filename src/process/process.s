@@ -24,7 +24,7 @@ _load:
     .endr
 
     csrr t0, sscratch
-    auipc t1, 0
+    csrr t1, sepc
     csrr t2, satp
 
     sd t0, 2*8(sp)
@@ -45,8 +45,8 @@ _load:
     csrw sepc, t2
     csrw satp, t3
 
-    li x1, 0
-    li x3, 0
+    ld x1, 1*8(sp)
+    ld x3, 3*8(sp)
 
     .set n, 6
     .rept 26
@@ -54,7 +54,8 @@ _load:
         .set n, n + 1
     .endr
 
-    mv sp, t0 
+    mv sp, t0
+    li t0, 0
 
     sret
     

@@ -100,7 +100,7 @@ impl PageTable {
             None => unreachable!()
         };
 
-        assert!(!pte.is_valid(), "{:?} is invalid before unmapping", vpn);
+        assert!(!pte.is_valid(), "{:?} is valid before mapping", vpn);
         *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
     }
 

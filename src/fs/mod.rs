@@ -15,7 +15,7 @@ lazy_static! {
     };
 }
 
-pub fn fefs_test() {
+pub fn test() {
     use fefs::file::WriteType;
     use fefs::dir::DirError;
     use fefs::file::FileError;

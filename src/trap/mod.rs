@@ -8,8 +8,6 @@ pub fn enable() {
 
     extern "C" { fn _trap_entry(); }
 
-    println!("{:#x}", _trap_entry as usize);
-
     unsafe {
         stvec::write(TRAMPOLINE, TrapMode::Direct);
     }
@@ -27,6 +25,15 @@ pub fn get_satp() -> usize {
         )
     }
     satp
+}
+
+pub fn test() {
+    println!("");
+    println!("this is trap test");
+
+    unsafe { asm! { "ebreak" } }
+    
+    println!("trap test passed");
 }
 
 pub use context::TrapContext;

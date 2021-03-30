@@ -372,3 +372,14 @@ impl MapArea {
         }
     }
 }
+
+impl Drop for MemorySet {
+    fn drop(&mut self) {
+        let table = &mut self.table;
+        self.areas.iter().for_each(|area| {
+            area.allocated.keys().for_each(|&vpn| {
+                table.unmap(vpn);
+            })
+        })
+    }
+}

@@ -57,10 +57,11 @@ fn main() {
     println!("你好世界");
     println!("this is NotYetOS");
 
-    fs::fefs_test();
-    unsafe { asm! { "ebreak" } }
+    trap::test();
+    fs::test();
     process::test();
 
+    println!("");
     println!("wow, i'm stupid");
     panic!("emm, to panic");
 }
