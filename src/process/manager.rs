@@ -40,10 +40,10 @@ impl ProcessManager {
         }
     }
 
-    pub fn exit(&mut self) {
+    pub fn exit(&mut self, code: i32) {
          match self.current.get_mut() {
             Some(process) => {
-                process.set_zombie()
+                process.set_zombie(code);
             }
             None => unreachable!()
         }
@@ -58,6 +58,15 @@ impl ProcessManager {
             None => unreachable!()
         }
         unsafe { _return(); }
+    }
+
+    pub fn pid(&mut self) -> usize {
+        match self.current.get_mut() {
+            Some(process) => {
+                process.pid()
+            }
+            None => unreachable!()
+        }
     }
 
     pub fn run_next(&mut self) {
@@ -101,14 +110,19 @@ pub fn push_process(process: ProcessUnit) {
     PROCESS_MANAGER.lock().push_process(process);
 }
 
-pub fn exit() {
+pub fn exit(code: i32) {
     unsafe { force_unlock_process_manager(); }
-    PROCESS_MANAGER.lock().exit();
+    PROCESS_MANAGER.lock().exit(code);
 }
 
 pub fn suspend() {
     unsafe { force_unlock_process_manager(); }
     PROCESS_MANAGER.lock().suspend();
+}
+
+pub fn getpid() -> usize {
+    unsafe { force_unlock_process_manager(); }
+    PROCESS_MANAGER.lock().pid()
 }
 
 unsafe fn force_unlock_process_manager() {

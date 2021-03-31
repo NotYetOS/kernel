@@ -2,6 +2,7 @@
 
 mod unit;
 mod manager;
+mod pid;
 
 pub fn test() {
     use crate::task::TaskUnit;

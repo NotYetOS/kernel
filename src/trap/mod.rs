@@ -42,3 +42,4 @@ pub fn test() {
 
 pub use context::TrapContext;
 pub use handler::trap_handler;
+pub use timer::get_time_ms;
