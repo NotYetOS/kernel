@@ -22,7 +22,7 @@ impl ProcessUnit {
     }
 
     pub fn set_suspend(&mut self) {
-        self.status = TaskStatus::Zombie
+        self.status = TaskStatus::Suspend
     }
 
     pub fn set_running(&mut self) {

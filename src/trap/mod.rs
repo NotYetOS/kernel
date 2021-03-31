@@ -1,5 +1,6 @@
 mod handler;
 mod context;
+mod timer;
 
 pub fn enable() {
     use riscv::register::stvec::TrapMode;
@@ -10,6 +11,8 @@ pub fn enable() {
     unsafe {
         stvec::write(_trap_entry as usize, TrapMode::Direct);
     }
+    timer::set_next_trigger();
+    timer::enable();
 }
 
 pub fn get_satp() -> usize {

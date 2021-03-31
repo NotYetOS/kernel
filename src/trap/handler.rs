@@ -3,6 +3,7 @@
 use crate::config::*;
 use crate::syscall::*;
 use crate::mm::PageTable;
+use crate::process;
 use super::context::TrapContext;
 use riscv::register::sstatus::{
     self,
@@ -54,7 +55,10 @@ fn interrupt_handler(cause: Scause, cx: &mut TrapContext) {
         Trap::Interrupt(Interrupt::UserSoft) => {},
         Trap::Interrupt(Interrupt::SupervisorSoft) => {},
         Trap::Interrupt(Interrupt::UserTimer) => {},
-        Trap::Interrupt(Interrupt::SupervisorTimer) => {},
+        Trap::Interrupt(Interrupt::SupervisorTimer) => {
+            super::timer::set_next_trigger();
+            process::suspend();
+        },
         Trap::Interrupt(Interrupt::UserExternal) => {},
         Trap::Interrupt(Interrupt::SupervisorExternal) => {},
         Trap::Interrupt(Interrupt::Unknown) => {},

@@ -30,7 +30,7 @@ impl ProcessManager {
     }
 
     pub fn push_process(&mut self, process: ProcessUnit) {
-        self.process.push_front(process);
+        self.process.push_back(process);
     }
 
     pub fn run(&mut self) {
