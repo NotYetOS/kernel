@@ -10,10 +10,12 @@ pub fn test() {
     use unit::ProcessUnit;
     use fefs::inode::INodeType;
     use alloc::vec::Vec;
+    use alloc::sync::Arc;
     
     println!("");
     println!("[test] process");
     println!("----------------------->");
+    
     let mut elf_data = Vec::new();
     let bin_dir = ROOT.lock().cd("bin").unwrap();
     for node in bin_dir.ls() {
@@ -23,7 +25,7 @@ pub fn test() {
                 let len = bin.read_to_vec(&mut elf_data).unwrap();
                 let task = TaskUnit::new(&elf_data[0..len]);
                 let process = ProcessUnit::new(task);
-                push_process(process);
+                push_process(Arc::new(process));
             }
             _ => {}
         }

@@ -4,7 +4,10 @@ use crate::config::*;
 use crate::syscall::*;
 use crate::mm::PageTable;
 use crate::process;
-use super::context::TrapContext;
+use super::context::{
+    TrapContext, 
+    get_trap_context
+};
 use riscv::register::sstatus::{
     self,
     SPP
@@ -32,18 +35,21 @@ extern "C" {
 #[no_mangle]
 pub fn trap_handler() {
     let scause = scause::read();
-
-    let satp = super::get_satp();
-    let pt = PageTable::from_satp(satp);
-    let pa = pt.translate_va_to_pa(TRAP_CONTEXT.into()).unwrap();
-    let cx = pa.get_mut::<TrapContext>();
-
+    let cx = get_trap_context(
+        super::get_satp()
+    );
+    
     if scause.is_interrupt() {
         interrupt_handler(scause, cx);
-    } else {
+    } else if scause.is_exception() {
         exception_handler(scause, cx);
+    } else {
+        panic!("{:?}", scause.cause());
     }
 
+    if is_return(cx.x[17]) {
+        process::ret();
+    }
     unsafe { _restore() };
 }
 
@@ -58,6 +64,7 @@ fn interrupt_handler(cause: Scause, cx: &mut TrapContext) {
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
             super::timer::set_next_trigger();
             process::suspend();
+            process::ret();
         },
         Trap::Interrupt(Interrupt::UserExternal) => {},
         Trap::Interrupt(Interrupt::SupervisorExternal) => {},
@@ -75,13 +82,15 @@ fn exception_handler(cause: Scause, cx: &mut TrapContext) {
         Trap::Exception(Exception::InstructionMisaligned) => {},
         Trap::Exception(Exception::InstructionFault) => {},
         Trap::Exception(Exception::IllegalInstruction) => {},
-        Trap::Exception(Exception::Breakpoint) => println!("ebreak"),  
+        Trap::Exception(Exception::Breakpoint) => {},  
         Trap::Exception(Exception::LoadFault) => {},
         Trap::Exception(Exception::StoreMisaligned) => {},
         Trap::Exception(Exception::StoreFault) => {},
         Trap::Exception(Exception::UserEnvCall) => {
-            let result = syscall(cx.x[17], [cx.x[10], cx.x[11], cx.x[12]]);
-            cx.x[10] = result as usize;
+            cx.x[10] = syscall(
+                cx.x[17], 
+                [cx.x[10], cx.x[11], cx.x[12]]
+            ) as usize;
         },
         Trap::Exception(Exception::InstructionPageFault) => {},
         Trap::Exception(Exception::LoadPageFault) => {},

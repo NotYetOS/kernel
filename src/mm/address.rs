@@ -185,6 +185,12 @@ impl PhysPageNum {
         let pa: PhysAddr = self.clone().into();
         pa.get_mut::<T>()
     }
+
+    pub fn clean(&self) {
+        self.get_page_bytes().copy_from_slice(
+            &[0; PAGE_SIZE]
+        );
+    }
 }
 
 impl Add<usize> for PhysPageNum {
@@ -245,6 +251,7 @@ impl SubAssign<usize> for VirtPageNum {
 
 #[derive(Clone, Copy)]
 pub struct VPNRange {
+    start: VirtPageNum,
     current: VirtPageNum,
     end: VirtPageNum, 
 }
@@ -255,6 +262,7 @@ impl VPNRange {
         end: VirtPageNum
     ) -> Self {
         Self {
+            start,
             current: start,
             end,
         }
@@ -262,6 +270,10 @@ impl VPNRange {
 
     pub fn current(&self) -> VirtPageNum {
         self.current
+    }
+
+    pub fn get_start(&self) -> VirtPageNum {
+        self.start
     }
 
     pub fn get_end(&self) -> VirtPageNum {

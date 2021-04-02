@@ -21,7 +21,16 @@ pub fn syscall(id: usize, args: [usize; 3]) -> isize {
         SYSCALL_YIELD => sys_yield(),
         SYSCALL_GET_TIME => sys_get_time(),
         SYSCALL_GETPID => sys_getpid(),
+        SYSCALL_FORK => sys_fork(),
         _ => panic!("unsupported syscall_id: {}", id),
+    }
+}
+
+pub fn is_return(id: usize) -> bool {
+    match id {
+        SYSCALL_EXIT => true,
+        SYSCALL_YIELD => true,
+        _ => false
     }
 }
 

@@ -10,7 +10,7 @@ struct PidAllocator {
 impl PidAllocator {
     pub fn new() -> Self {
         Self {
-            current: 0,
+            current: 1,
             recycled: Vec::new(),
         }
     }

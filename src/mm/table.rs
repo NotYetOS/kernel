@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 use alloc::string::String;
+use crate::config::*;
 use super::{
     FrameTracker, 
     PTEFlags, 
@@ -109,6 +110,7 @@ impl PageTable {
             Some(pte) => pte,
             None => unreachable!()
         };
+        
         assert!(pte.is_valid(), "{:?} is invalid before unmapping", vpn);
         *pte = PageTableEntry::empty();
     }

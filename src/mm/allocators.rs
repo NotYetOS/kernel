@@ -100,6 +100,8 @@ pub fn frame_dealloc(ppn: PhysPageNum) {
 // RAII
 impl Drop for FrameTracker {
     fn drop(&mut self) {
+        // clean page table entrys
+        self.ppn().clean();
         frame_dealloc(self.ppn())
     }
 }

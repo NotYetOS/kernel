@@ -9,7 +9,7 @@
 
 .section .text.asm
 .global _load
-.global _exit
+.global _ret
 .align 4
 
 _load: 
@@ -58,7 +58,7 @@ _load:
     li t0, 0
     sret
     
-_return: 
+_ret: 
     li sp, 0xfffffffffffff000
 
     ld t0, 32*8(sp)

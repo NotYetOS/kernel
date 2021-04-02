@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use core::ops::Deref;
+
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use riscv::register::satp;
@@ -45,7 +47,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug, PartialEq, PartialOrd)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 enum MapType {
     Identical,
     Alloc,
@@ -172,7 +174,7 @@ impl MemorySet {
         set
     }
 
-    pub fn from_elf(mode: SPP, data: &[u8]) -> (Self, usize, usize, usize) {
+    pub fn from_elf(mode: SPP, data: &[u8]) -> Self {
         let mut set = MemorySet::new();
 
         set.push(
@@ -262,7 +264,7 @@ impl MemorySet {
             MapPermission::R | MapPermission::W,
         ), Some(trap_bytes));
 
-        (set, user_stack_top, entry, mode as usize)
+        set
     } 
 
     // activate Sv39
@@ -354,5 +356,49 @@ impl Drop for MemorySet {
                 table.unmap(vpn);
             })
         })
+    }
+}
+
+impl Deref for MemorySet {
+    type Target = PageTable;
+
+    fn deref(&self) -> &Self::Target {
+        &self.table
+    }
+}
+
+impl Clone for MemorySet {
+    fn clone(&self) -> Self {
+        let mut set = MemorySet::new();
+
+        self.areas.iter().for_each(|area| {
+            let new_area = area.clone();
+            set.push(new_area, None);
+
+            if let MapType::Alloc = area.mtype {
+                for vpn in area.range {
+                    let src_ppn = self.translate(vpn).unwrap().ppn();
+                    let dst_ppn = set.translate(vpn).unwrap().ppn();
+                    dst_ppn.get_page_bytes().copy_from_slice(
+                        src_ppn.get_page_bytes()
+                    );
+                }
+            }
+        });
+
+        set
+    }
+}
+
+impl Clone for MapArea {
+    fn clone(&self) -> Self {
+        Self {
+            range: VPNRange::new(
+                self.range.get_start(), 
+                self.range.get_end()
+            ),
+            allocated: BTreeMap::new(),
+            ..*self
+        }
     }
 }
