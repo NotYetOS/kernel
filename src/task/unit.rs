@@ -1,7 +1,5 @@
 #![allow(unused)]
 
-use core::f32::consts::PI;
-
 use alloc::string::String;
 use alloc::vec::Vec;
 use riscv::register::sstatus::SPP;
@@ -14,7 +12,10 @@ pub struct TaskUnit {
 
 impl TaskUnit {
     pub fn new(elf_data: &[u8]) -> Self {
-        let set = MemorySet::from_elf(SPP::User, &elf_data);
+        let set = MemorySet::from_elf(
+            SPP::User, 
+            &elf_data
+        );
 
         Self {
             satp: set.satp_bits(),

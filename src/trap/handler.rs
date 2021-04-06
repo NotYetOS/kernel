@@ -35,21 +35,19 @@ extern "C" {
 #[no_mangle]
 pub fn trap_handler() {
     let scause = scause::read();
+    let stval = stval::read();
     let cx = get_trap_context(
         super::get_satp()
     );
-    
+ 
     if scause.is_interrupt() {
         interrupt_handler(scause, cx);
     } else if scause.is_exception() {
         exception_handler(scause, cx);
     } else {
-        panic!("{:?}", scause.cause());
+        panic!("unsupport trap {:?}, stval = {:#x}", scause.cause(), stval);
     }
 
-    if is_return(cx.x[17]) {
-        process::ret();
-    }
     unsafe { _restore() };
 }
 
@@ -87,10 +85,15 @@ fn exception_handler(cause: Scause, cx: &mut TrapContext) {
         Trap::Exception(Exception::StoreMisaligned) => {},
         Trap::Exception(Exception::StoreFault) => {},
         Trap::Exception(Exception::UserEnvCall) => {
+            let id = cx.x[17];
             cx.x[10] = syscall(
-                cx.x[17], 
+                id, 
                 [cx.x[10], cx.x[11], cx.x[12]]
             ) as usize;
+
+            if is_process_call(id) {
+                process::ret();
+            }        
         },
         Trap::Exception(Exception::InstructionPageFault) => {},
         Trap::Exception(Exception::LoadPageFault) => {},

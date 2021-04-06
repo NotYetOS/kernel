@@ -4,6 +4,9 @@ use core::cell::RefCell;
 use alloc::collections::VecDeque;
 use lazy_static::lazy_static;
 use spin::Mutex;
+use crate::fs::ROOT;
+use crate::task::TaskUnit;
+use alloc::vec::Vec;
 use alloc::sync::{
     Arc,
     Weak
@@ -40,7 +43,7 @@ impl ProcessManager {
     pub fn new() -> Self {
         Self {
             process: VecDeque::new(),
-            current: RefCell::new(None)
+            current: RefCell::new(None),
         }
     }
 
@@ -51,28 +54,36 @@ impl ProcessManager {
         self.process.push_back(process);
     }
 
-    pub fn run(&mut self) {
-        loop { 
-            if self.process.is_empty() { break; }
-            self.run_next(); 
-        }
+    pub fn pop_process(
+        &mut self,
+    ) -> Option<Arc<ProcessUnit>> {
+        self.process.pop_front()
     }
 
     pub fn exit(&mut self, code: i32) {
-         match self.current.get_mut() {
+        let out = match self.pop_process() {
             Some(process) => {
-                process.set_zombie(code);
+                self.replace(process).unwrap()
+            },
+            None => {
+                self.current().unwrap()
             }
-            None => unreachable!()
-        }
+        };
+        out.set_zombie(code);
+        // out.exit();
+        drop(out);
     }
 
     pub fn suspend(&mut self) {
-        match self.current.get_mut() {
+        match self.process.pop_front() {
             Some(process) => {
-                process.set_suspend();
+                let last = self.replace(
+                    process
+                ).unwrap();
+                last.set_suspend();
+                self.push_process(last);
             }
-            None => unreachable!()
+            None => {}
         }
     }
 
@@ -86,48 +97,85 @@ impl ProcessManager {
     }
 
     pub fn fork(&mut self) -> usize {
-        let process = self.current();
+        let process = self.current().unwrap();
         let child = process.fork();
-        let pid = process.pid();
+        let pid = child.pid();
         self.push_process(child);
-        self.current.replace(Some(process));
+        self.replace(process);
         pid
     }
 
-    pub fn ready(&mut self) -> Option<usize> {
-        match self.process.pop_front() {
-            Some(mut process) => {
-                let mut satp = process.satp();
-                process.set_running();
-                self.current = RefCell::new(Some(process));
-                Some(satp)
+    pub fn exec(&mut self, path: &str) -> isize {
+        let mut elf_data = Vec::new();
+        let root_gurad = ROOT.lock();
+        let bin_dir = root_gurad.cd("bin").unwrap();
+
+        let gen_process= |elf_data: &[u8]| {
+            let task = TaskUnit::new(&elf_data);
+            let new = ProcessUnit::new(task);
+            match self.current() {
+                Some(last) => {
+                    last.replace(new);
+                    self.replace(last);
+                }
+                None => {
+                    self.replace(
+                        Arc::new(new)
+                    );
+                }
             }
-            None => None,
+        };
+
+        match bin_dir.open_file(path) {
+            Ok(bin) => {
+                let len = bin.read_to_vec(&mut elf_data).unwrap();
+                gen_process(&elf_data[0..len]);
+                drop(root_gurad);
+                0
+            }
+            Err(_) => -1
         }
     }
 
-    pub fn run_next(&mut self) {
-        match self.ready() {
-            Some(satp) => load(satp),
-            None => return
+    pub fn waitpid(&self, pid: isize, exit_code: *mut i32) -> isize {
+        let current = self.current().unwrap();
+        let pid = match pid {
+            -1 => current.wait(),
+            other @ _ => current.waitpid(other, exit_code)
+        };
+        self.replace(current);
+        pid
+    }
+
+    pub fn run_inner(&mut self) -> bool {
+        match self.current.get_mut() {
+            Some(process) => {
+                load(process.satp());
+                true
+            }
+            None => false
         }
+    }
 
-        let process = self.current();
-
-        match process.status() {
-            TaskStatus::Zombie => {
-                // RAII
-                drop(process);
+    pub fn run(&mut self) {
+        loop {
+            if !self.run_inner() {
+                break;
             }
-            TaskStatus::Suspend => {
-                self.push_process(process);
-            }
-            _ => unreachable!()
         }
     }
     
-    fn current(&self) -> Arc<ProcessUnit> {
-        self.current.replace(None).unwrap()
+    fn current(
+        &self
+    ) -> Option<Arc<ProcessUnit>> {
+        self.current.replace(None)
+    }
+
+    fn replace(
+        &self, 
+        src: Arc<ProcessUnit>
+    ) -> Option<Arc<ProcessUnit>> {
+        self.current.replace(Some(src))
     }
 }
 
@@ -135,10 +183,6 @@ lazy_static! {
     pub static ref PROCESS_MANAGER: Mutex<ProcessManager> = {
         Mutex::new(ProcessManager::new())
     };
-}
-
-pub fn run() {
-    PROCESS_MANAGER.lock().run();
 }
 
 pub fn push_process(process: Arc<ProcessUnit>) {
@@ -159,6 +203,18 @@ pub fn getpid() -> usize {
 
 pub fn fork() -> usize {
     PROCESS_MANAGER.lock().fork()
+}
+
+pub fn exec(path: &str) -> isize {
+    PROCESS_MANAGER.lock().exec(path)
+}
+
+pub fn waitpid(pid: isize, exit_code: *mut i32) -> isize {
+    PROCESS_MANAGER.lock().waitpid(pid, exit_code)
+}
+
+pub fn run() {
+    PROCESS_MANAGER.lock().run()
 }
 
 unsafe fn force_unlock_process_manager() {

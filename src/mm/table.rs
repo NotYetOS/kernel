@@ -2,6 +2,7 @@
 
 use alloc::string::String;
 use crate::config::*;
+use crate::sbi::console_getchar;
 use super::{
     FrameTracker, 
     PTEFlags, 
@@ -129,4 +130,18 @@ pub fn translated_str(satp: usize, ptr: *const u8, len: usize) -> String {
     }
     
     String::from_utf8(vec_str).unwrap()
+}
+
+pub fn translated_get_char(satp: usize, ptr: *const u8, len: usize) {
+    let page_table = PageTable::from_satp(satp);
+    let mut va = (ptr as usize).into();
+    let pa = page_table.translate_va_to_pa(va).unwrap();
+    let ch = pa.get_mut::<u8>();
+    *ch = console_getchar() as u8;
+}
+
+pub fn translated_refmut<T>(satp: usize, ptr: *mut T) -> &'static mut T {
+    let page_table = PageTable::from_satp(satp);
+    let mut va = (ptr as usize).into();
+    page_table.translate_va_to_pa(va).unwrap().get_mut()
 }
