@@ -3,15 +3,12 @@ use super::pid::alloc_pid;
 use crate::mm::translated_refmut;
 use crate::task::TaskUnit;
 use crate::trap::get_trap_context;
-use alloc::vec::Vec;
 use crate::trap::get_satp;
+use alloc::vec::Vec;
+use core::cell::RefCell;
 use alloc::sync::{
     Arc, 
     Weak
-};
-use core::{
-    cell::RefCell, 
-    ops::Deref
 };
 use spin::{
     Mutex, 
@@ -134,17 +131,24 @@ impl ProcessUnit {
         pid
     }
 
-    pub fn wait(&self) -> isize {
+    pub fn wait(&self, exit_code: *mut i32) -> isize {
         let children = &mut self.inner_lock().children;
         let mut idx = 0;
         
-        let pid = if children.iter().enumerate().find(|&(_, child)| {
-            child.status() != TaskStatus::Zombie
-        }).is_some() {
-            -2
-        } else {
-            0
-        };
+        let pid = children.iter().enumerate().find(|&(_, child)| {
+            child.status() == TaskStatus::Zombie
+        }).map_or(-2, |(i, child)| {
+            idx = i;
+            let satp = get_satp();
+            let pa_exit = translated_refmut(
+                satp, 
+                exit_code
+            );
+            *pa_exit = child.exit_code();
+            child.pid() as isize
+        });
+
+        if pid > 0 { drop(children.remove(idx)); }
 
         pid
     }

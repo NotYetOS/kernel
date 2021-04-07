@@ -140,7 +140,7 @@ impl ProcessManager {
     pub fn waitpid(&self, pid: isize, exit_code: *mut i32) -> isize {
         let current = self.current().unwrap();
         let pid = match pid {
-            -1 => current.wait(),
+            -1 => current.wait(exit_code),
             other @ _ => current.waitpid(other, exit_code)
         };
         self.replace(current);
