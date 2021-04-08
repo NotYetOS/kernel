@@ -4,9 +4,12 @@ use core::cell::RefCell;
 use alloc::collections::VecDeque;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use crate::fs::ROOT;
 use crate::task::TaskUnit;
 use alloc::vec::Vec;
+use crate::fs::{
+    ROOT,
+    File,
+};
 use alloc::sync::{
     Arc,
     Weak
@@ -21,6 +24,7 @@ global_asm!(include_str!("process.s"));
 extern "C" {
     fn _load(satp: usize); 
     fn _ret();
+    fn _save_call_context(satp: usize);
 }
 
 pub fn load(satp: usize) {
@@ -87,6 +91,12 @@ impl ProcessManager {
         }
     }
 
+    pub fn save_call_context(&self) {
+        let current = self.current().unwrap();
+        unsafe { _save_call_context(current.satp()) }
+        self.replace(current);
+    }
+
     pub fn pid(&mut self) -> usize {
         match self.current.get_mut() {
             Some(process) => {
@@ -147,6 +157,34 @@ impl ProcessManager {
         pid
     }
 
+    pub fn read(&self, fd: usize, buf: *const u8, len: usize) -> isize {
+        let current = self.current().unwrap();
+        let ret = current.read(fd, buf, len);
+        self.replace(current);
+        ret
+    }
+
+    pub fn write(&self, fd: usize, buf: *const u8, len: usize) -> isize {
+        let current = self.current().unwrap();
+        let ret = current.write(fd, buf, len);
+        self.replace(current);
+        ret
+    }
+
+    pub fn close(&self, fd: usize) -> isize {
+        let current = self.current().unwrap();
+        let ret = current.close(fd);
+        self.replace(current);
+        ret
+    }
+
+    pub fn pipe(&self, pipe: *mut usize) -> isize {
+        let current = self.current().unwrap();
+        let ret = current.pipe(pipe);
+        self.replace(current);
+        ret
+    }
+
     pub fn run_inner(&mut self) -> bool {
         match self.current.get_mut() {
             Some(process) => {
@@ -197,6 +235,10 @@ pub fn suspend() {
     PROCESS_MANAGER.lock().suspend();
 }
 
+pub fn save_call_context() {
+    PROCESS_MANAGER.lock().save_call_context();
+}
+
 pub fn getpid() -> usize {
     PROCESS_MANAGER.lock().pid()
 }
@@ -211,6 +253,22 @@ pub fn exec(path: &str) -> isize {
 
 pub fn waitpid(pid: isize, exit_code: *mut i32) -> isize {
     PROCESS_MANAGER.lock().waitpid(pid, exit_code)
+}
+
+pub fn read(fd: usize, buf: *const u8, len: usize) -> isize {
+    PROCESS_MANAGER.lock().read(fd, buf, len)
+}
+
+pub fn write(fd: usize, buf: *const u8, len: usize) -> isize {
+    PROCESS_MANAGER.lock().write(fd, buf, len)
+}
+
+pub fn close(fd: usize) -> isize {
+    PROCESS_MANAGER.lock().close(fd)
+}
+
+pub fn pipe(pipe: *mut usize) -> isize {
+    PROCESS_MANAGER.lock().pipe(pipe)
 }
 
 pub fn run() {

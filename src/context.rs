@@ -3,7 +3,7 @@ use crate::config::*;
 use crate::mm::PageTable;
 
 #[repr(C)]
-pub struct TrapContext {
+pub struct Context {
     pub x: [usize; 32],
     // save status, like privilege mode
     sstatus: usize,
@@ -12,12 +12,13 @@ pub struct TrapContext {
     kernel_satp: usize,
     kernel_sp: usize,
     trap_handler: usize,
-    spp: usize
+    spp: usize,
+    is_in_call_process: usize,
 }
 
-impl TrapContext {
+impl Context {
     pub fn set_sp(&mut self, sp: usize) { self.x[2] = sp; }
-    pub fn init_trap_context(
+    pub fn init_context(
         mode: SPP, 
         entry: usize, 
         satp: usize, 
@@ -40,6 +41,7 @@ impl TrapContext {
             kernel_sp,
             trap_handler,
             spp: mode as usize,
+            is_in_call_process: 0,
         };
         
         cx.set_sp(sp);
@@ -47,8 +49,8 @@ impl TrapContext {
     }
 }
 
-pub fn get_trap_context(satp: usize) -> &'static mut TrapContext {
+pub fn get_context(satp: usize) -> &'static mut Context {
     let pt = PageTable::from_satp(satp);
-    let pa = pt.translate_va_to_pa(TRAP_CONTEXT.into()).unwrap();
-    pa.get_mut::<TrapContext>()
+    let pa = pt.translate_va_to_pa(CONTEXT.into()).unwrap();
+    pa.get_mut::<Context>()
 }

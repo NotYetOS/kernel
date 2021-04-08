@@ -1,5 +1,4 @@
 mod handler;
-mod context;
 mod timer;
 
 pub fn enable() {
@@ -9,20 +8,23 @@ pub fn enable() {
     extern "C" { fn _trap_entry(); }
 
     unsafe {
-        stvec::write(_trap_entry as usize, TrapMode::Direct);
+        stvec::write(
+            _trap_entry as usize, 
+            TrapMode::Direct
+        );
     }
     timer::set_next_trigger();
     timer::enable();
 }
 
 pub fn get_satp() -> usize {
-    use crate::config::TRAP_CONTEXT;
+    use crate::config::CONTEXT;
     let mut satp: usize;
     
     unsafe {
         asm!(
             "ld {1}, 34*8({0})",
-            in(reg) TRAP_CONTEXT,
+            in(reg) CONTEXT,
             out(reg) satp
         );
     }
@@ -40,7 +42,5 @@ pub fn test() {
     println!("[passed] trap test");
 }
 
-pub use context::TrapContext;
-pub use context::get_trap_context;
 pub use handler::trap_handler;
 pub use timer::get_time_ms;

@@ -9,7 +9,7 @@ use riscv::register::sstatus::SPP;
 use xmas_elf::ElfFile;
 use xmas_elf::program;
 use crate::config::*;
-use crate::trap::TrapContext;
+use crate::context::Context;
 use super::{
     FrameTracker, 
     Mode, 
@@ -147,7 +147,7 @@ impl MemorySet {
             ), None
         );
 
-        let trap_context = TrapContext::init_trap_context(
+        let context = Context::init_context(
             SPP::Supervisor, 
             0, 
             0,
@@ -157,19 +157,26 @@ impl MemorySet {
             crate::trap::trap_handler as usize,
         );
 
-        let trap_bytes = unsafe {
+        let context_bytes = unsafe {
             core::slice::from_raw_parts(
-                &trap_context as *const _ as *const u8, 
-                core::mem::size_of::<TrapContext>()
+                &context as *const _ as *const u8, 
+                core::mem::size_of::<Context>()
             )
         };
 
         set.push(MapArea::new(
-            TRAP_CONTEXT.into(),
+            SUB_CONTEXT.into(),
+            CONTEXT.into(),
+            MapType::Alloc,
+            MapPermission::R | MapPermission::W,
+        ), Some(context_bytes));
+
+        set.push(MapArea::new(
+            CONTEXT.into(),
             usize::MAX.into(),
             MapType::Alloc,
             MapPermission::R | MapPermission::W,
-        ), Some(trap_bytes));
+        ), Some(context_bytes));
 
         set
     }
@@ -240,7 +247,7 @@ impl MemorySet {
 
         let entry = elf_header_part2.entry_point() as usize;
 
-        let trap_context = TrapContext::init_trap_context(
+        let context = Context::init_context(
             mode, 
             entry, 
             set.satp_bits(),
@@ -250,19 +257,26 @@ impl MemorySet {
             crate::trap::trap_handler as usize
         );
 
-        let trap_bytes = unsafe {
+        let context_bytes = unsafe {
             core::slice::from_raw_parts(
-                &trap_context as *const _ as *const u8, 
-                core::mem::size_of::<TrapContext>()
+                &context as *const _ as *const u8, 
+                core::mem::size_of::<Context>()
             )
         };
 
         set.push(MapArea::new(
-            TRAP_CONTEXT.into(),
+            SUB_CONTEXT.into(),
+            CONTEXT.into(),
+            MapType::Alloc,
+            MapPermission::R | MapPermission::W,
+        ), Some(context_bytes));
+
+        set.push(MapArea::new(
+            CONTEXT.into(),
             usize::MAX.into(),
             MapType::Alloc,
             MapPermission::R | MapPermission::W,
-        ), Some(trap_bytes));
+        ), Some(context_bytes));
 
         set
     } 

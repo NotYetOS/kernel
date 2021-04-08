@@ -24,6 +24,7 @@ mod config;
 mod drivers;
 mod fs;
 mod trap;
+mod context;
 mod process;
 mod task;
 mod syscall;

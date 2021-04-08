@@ -1,15 +1,19 @@
 use crate::mm::*;
 use crate::trap::*;
+use crate::process;
+
+pub fn sys_close(fd: usize) -> isize {
+    process::close(fd)
+}
+
+pub fn sys_pipe(pipe: *mut usize) -> isize {
+    process::pipe(pipe)
+}
 
 pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
-    let satp = get_satp();
-    translated_get_char(satp, buf, len);
-    0
+    process::read(fd, buf, len)
 }
 
 pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
-    let satp = get_satp();
-    let string = translated_str(satp, buf, len);
-    print!("{}", string);
-    0
+    process::write(fd, buf, len)
 }

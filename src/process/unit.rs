@@ -1,11 +1,24 @@
 use super::pid::Pid;
 use super::pid::alloc_pid;
-use crate::mm::translated_refmut;
+use crate::fs::File;
 use crate::task::TaskUnit;
-use crate::trap::get_trap_context;
+use crate::context::get_context;
 use crate::trap::get_satp;
+use crate::fs::{
+    UserBuffer,
+    make_pipe,
+};
+use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::RefCell;
+use crate::fs::{
+    Stdin,
+    Stdout,
+};
+use crate::mm::{
+    translated_byte_buffer, 
+    translated_refmut
+};
 use alloc::sync::{
     Arc, 
     Weak
@@ -14,6 +27,7 @@ use spin::{
     Mutex, 
     MutexGuard
 };
+
 
 pub struct ProcessUnit {
     pid: Pid,
@@ -38,7 +52,7 @@ impl ProcessUnit {
             ),
         });
         
-        let cx = get_trap_context(child.satp());
+        let cx = get_context(child.satp());
         cx.x[10] = 0;
         cx.satp = child.satp();
 
@@ -67,9 +81,20 @@ impl ProcessUnit {
         self.inner.into_inner().task_unit
     }
 
-    fn drop_zombie_inner(&self) {
-        self.inner_lock().drop_zombie()
+    fn alloc_fd(&self, fd_table: &mut Vec<Option<Arc<dyn File>>>) -> usize {
+        let fd_end = fd_table.len();
+        
+        (0..fd_end).find(|&fd| {
+            fd_table.get(fd).unwrap().is_none()
+        }).map_or_else(|| {
+            fd_table.push(None);
+            fd_end
+        }, |fd| fd)
     }
+
+    // fn drop_zombie_inner(&self) {
+    //     self.inner_lock().drop_zombie()
+    // }
 
     fn inner_lock(&self) -> MutexGuard<ProcessUnitInner> {
         self.inner.lock()
@@ -110,35 +135,38 @@ impl ProcessUnit {
 
     pub fn waitpid(&self, pid: isize, exit_code: *mut i32) -> isize {
         let children = &mut self.inner_lock().children;
-        let mut idx = 0;
-        let pid = children.iter().enumerate().find(|&(_, child)| {
-            child.pid() == pid as usize
-        }).map_or(-1, |(i, child)| {
-            if child.status() == TaskStatus::Zombie {
-                idx = i;
-                let satp = get_satp();
-                let pa_exit = translated_refmut(
-                    satp, 
-                    exit_code
-                );
-                *pa_exit = child.exit_code();
-                child.pid() as isize
-            } else {
-                -2
+        let len = children.len();
+
+        (0..len).find(|&idx| {
+            children.get(idx).unwrap().pid() == pid as usize
+        }).map_or(-1, |idx| {
+            let child = children.remove(idx);
+            match child.status() {
+                TaskStatus::Zombie => {
+                    let satp = get_satp();
+                    let pa_exit = translated_refmut(
+                        satp, 
+                        exit_code
+                    );
+                    *pa_exit = child.exit_code();
+                    child.pid() as isize
+                }
+                _ => {
+                    children.push(child);
+                    -2
+                }
             }
-        });
-        if pid > 0 { drop(children.remove(idx)); }
-        pid
+        })
     }
 
     pub fn wait(&self, exit_code: *mut i32) -> isize {
         let children = &mut self.inner_lock().children;
-        let mut idx = 0;
-        
-        let pid = children.iter().enumerate().find(|&(_, child)| {
-            child.status() == TaskStatus::Zombie
-        }).map_or(-2, |(i, child)| {
-            idx = i;
+        let len = children.len();
+
+        (0..len).find(|&idx| {
+            children.get(idx).unwrap().status() == TaskStatus::Zombie
+        }).map_or(-2, |idx| {
+            let child = children.remove(idx);
             let satp = get_satp();
             let pa_exit = translated_refmut(
                 satp, 
@@ -146,24 +174,89 @@ impl ProcessUnit {
             );
             *pa_exit = child.exit_code();
             child.pid() as isize
-        });
-
-        if pid > 0 { drop(children.remove(idx)); }
-
-        pid
+        })
     }
 
-    pub fn exit(&self) {
-        let lock = self.inner_lock();
-        match lock.parent.replace(None) {
-            Some(weak) => {
-                drop(lock);
-                let parent = weak.upgrade().unwrap();
-                parent.drop_zombie_inner();
+    pub fn read(&self, fd: usize, buf: *const u8, len: usize) -> isize {
+        let satp = self.satp();
+        let inner = self.inner_lock();
+        match inner.fd_table().get(fd) {
+            Some(option) => {
+                match option {
+                    Some(io) => {
+                        let buf = UserBuffer::new(
+                            translated_byte_buffer(satp, buf, len)
+                        );
+                        io.read(buf) as isize
+                    }
+                    None => -1
+                }
             }
-            None => {}
+            None => -1
         }
     }
+
+    pub fn write(&self, fd: usize, buf: *const u8, len: usize) -> isize {
+        let satp = self.satp();
+        let inner = self.inner_lock();
+        match inner.fd_table().get(fd) {
+            Some(option) => {
+                match option {
+                    Some(io) => {
+                        let buf = UserBuffer::new(
+                            translated_byte_buffer(satp, buf, len)
+                        );
+                        io.write(buf) as isize
+                    }
+                    None => -1
+                }
+            }
+            None => -1
+        }
+    }
+
+    pub fn pipe(&self, pipe: *mut usize) -> isize {
+        let satp = self.satp();
+        let mut inner = self.inner_lock();
+        let fd_table = inner.fd_table_mut();
+        let (read, write) = make_pipe();
+
+        let read_fd = self.alloc_fd(fd_table);
+        *fd_table.get_mut(read_fd).unwrap() = Some(read);
+        let write_fd = self.alloc_fd(fd_table);
+        *fd_table.get_mut(write_fd).unwrap() = Some(write);;
+
+        *translated_refmut(satp, pipe) = read_fd;
+        *translated_refmut(
+            satp, 
+            unsafe { pipe.add(1) }
+        ) = write_fd;
+
+        0
+    }
+
+    pub fn close(&self, fd: usize) -> isize {
+        let mut inner = self.inner_lock();
+        match inner.fd_table_mut().get_mut(fd) {
+            Some(io) => {
+                io.take();
+                0
+            }
+            None => -1
+        }
+    }
+
+    // pub fn exit(&self) {
+    //     let lock = self.inner_lock();
+    //     match lock.parent.replace(None) {
+    //         Some(weak) => {
+    //             drop(lock);
+    //             let parent = weak.upgrade().unwrap();
+    //             parent.drop_zombie_inner();
+    //         }
+    //         None => {}
+    //     }
+    // }
 }
 
 pub struct ProcessUnitInner {
@@ -171,7 +264,8 @@ pub struct ProcessUnitInner {
     status: TaskStatus,
     exit_code: i32,
     parent: RefCell<Option<Weak<ProcessUnit>>>,
-    children: Vec<Arc<ProcessUnit>>
+    children: Vec<Arc<ProcessUnit>>,
+    fd_table: Vec<Option<Arc<dyn File>>>
 }
 
 impl ProcessUnitInner {
@@ -182,6 +276,11 @@ impl ProcessUnitInner {
             exit_code: 0,
             parent: RefCell::new(None),
             children: Vec::new(),
+            fd_table: vec![
+                Some(Arc::new(Stdin)),
+                Some(Arc::new(Stdout)),
+                Some(Arc::new(Stdout)),
+            ],
         }
     }
 
@@ -202,20 +301,28 @@ impl ProcessUnitInner {
         &self.task_unit
     }
 
-    fn drop_zombie(&mut self) {
-        let mut drop_children = Vec::new();
-        self.children.iter().enumerate().for_each(|(
-            index, 
-            child
-        )| {
-            if TaskStatus::Zombie == child.status() {
-                drop_children.push(index);
-            }
-        });
-        drop_children.iter().for_each(|&i| {
-            drop(self.children.remove(i))
-        })
-    } 
+    fn fd_table(&self) -> &Vec<Option<Arc<dyn File>>> {
+        &self.fd_table
+    }
+
+    fn fd_table_mut(&mut self) -> &mut Vec<Option<Arc<dyn File>>> {
+        &mut self.fd_table
+    }
+
+    // fn drop_zombie(&mut self) {
+    //     let mut drop_children = Vec::new();
+    //     self.children.iter().enumerate().for_each(|(
+    //         index, 
+    //         child
+    //     )| {
+    //         if TaskStatus::Zombie == child.status() {
+    //             drop_children.push(index);
+    //         }
+    //     });
+    //     drop_children.iter().for_each(|&i| {
+    //         drop(self.children.remove(i))
+    //     })
+    // } 
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -232,6 +339,7 @@ impl Clone for ProcessUnitInner {
             task_unit: self.task_unit.clone(),
             parent: RefCell::new(None),
             children: Vec::new(),
+            fd_table: self.fd_table.clone(),
             ..*self
         }
     }

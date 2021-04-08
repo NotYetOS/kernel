@@ -4,9 +4,9 @@ use crate::config::*;
 use crate::syscall::*;
 use crate::mm::PageTable;
 use crate::process;
-use super::context::{
-    TrapContext, 
-    get_trap_context
+use crate::context::{
+    Context, 
+    get_context
 };
 use riscv::register::sstatus::{
     self,
@@ -36,7 +36,7 @@ extern "C" {
 pub fn trap_handler() {
     let scause = scause::read();
     let stval = stval::read();
-    let cx = get_trap_context(
+    let cx = get_context(
         super::get_satp()
     );
  
@@ -51,7 +51,7 @@ pub fn trap_handler() {
     unsafe { _restore() };
 }
 
-fn interrupt_handler(cause: Scause, cx: &mut TrapContext) {
+fn interrupt_handler(cause: Scause, cx: &mut Context) {
     let stval = stval::read();
 
     // if interrupt happened, sepc value is the next pc where the interrupt happened
@@ -71,7 +71,7 @@ fn interrupt_handler(cause: Scause, cx: &mut TrapContext) {
     }
 }
 
-fn exception_handler(cause: Scause, cx: &mut TrapContext) {
+fn exception_handler(cause: Scause, cx: &mut Context) {
     // if exception happened, sepc value is the pc where the exception happened
     // ecall or ebreak instruction is 4 byte
     cx.sepc += 4;

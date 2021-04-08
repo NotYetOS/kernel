@@ -6,6 +6,9 @@ use spin::Mutex;
 use alloc::vec::Vec;
 use crate::drivers::BLOCK_DEVICE;
 
+mod stdio;
+mod pipe;
+
 lazy_static! {
     pub static ref ROOT: Arc<Mutex<DirEntry>> = {
         let fs = FileSystem::open(BLOCK_DEVICE.clone());
@@ -13,6 +16,73 @@ lazy_static! {
         let root = fs.root();
         Arc::new(Mutex::new(root)) 
     };
+}
+
+pub trait File: Send + Sync {
+    fn read(&self, buf: UserBuffer) -> usize;
+    fn write(&self, buf: UserBuffer) -> usize;
+}
+
+pub struct UserBuffer {
+    inner: Vec<&'static mut [u8]>,
+}
+
+impl UserBuffer {
+    pub fn new(
+        buffers: Vec<&'static mut [u8]>
+    ) -> Self {
+        Self { inner: buffers }
+    }
+
+    pub fn len(&self) -> usize {
+        let mut total: usize = 0;
+        for b in self.inner.iter() {
+            total += b.len();
+        }
+        total
+    }
+}
+
+pub struct UserBufferIterator {
+    buffers: Vec<&'static mut [u8]>,
+    current_buffer: usize,
+    buffer_idx: usize,
+}
+
+impl Iterator for UserBufferIterator {
+    type Item = *mut u8;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current_buffer >= self.buffers.len() {
+            return None;
+        }
+        let ret = &mut self.buffers
+        [self.current_buffer]
+        [self.buffer_idx] as *mut u8;
+
+        if self.buffer_idx + 1 == self.buffers
+        [self.current_buffer].len() {
+            self.current_buffer += 1;
+            self.buffer_idx = 0;
+        } else {
+            self.buffer_idx += 1;
+        }
+
+        Some(ret)
+    }
+}
+
+impl IntoIterator for UserBuffer {
+    type Item = *mut u8;
+    type IntoIter = UserBufferIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        UserBufferIterator {
+            buffers: self.inner,
+            current_buffer: 0,
+            buffer_idx: 0,
+        }
+    }
 }
 
 pub fn test() {
@@ -62,3 +132,9 @@ pub fn test() {
     println!("<-----------------------");
     println!("[passed] fefs test");
 }
+
+pub use stdio::{
+    Stdin,
+    Stdout
+};
+pub use pipe::make_pipe;

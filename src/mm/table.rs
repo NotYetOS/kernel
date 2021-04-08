@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use core::cmp::min;
+
 use alloc::string::String;
 use crate::config::*;
 use crate::sbi::console_getchar;
@@ -117,27 +119,52 @@ impl PageTable {
     }
 }
 
+pub fn translated_byte_buffer(
+    satp: usize, 
+    ptr: *const u8, 
+    len: usize
+) -> Vec<&'static mut [u8]> {
+    let page_table = PageTable::from_satp(satp);
+    let mut start = ptr as usize;
+    let end = start + len;
+    let mut v = Vec::new();
+
+    while start < end {
+        let start_va = VirtAddr::from(start);
+        let mut vpn = start_va.floor();
+        let ppn = page_table
+            .translate(vpn)
+            .unwrap()
+            .ppn();
+        vpn += 1;
+        let mut end_va: VirtAddr = vpn.into();
+        end_va = min(end_va.value(), end).into();
+
+        if end_va.page_offset() == 0 {
+            v.push(&mut ppn.get_page_bytes()[start_va.page_offset()..]);
+        } else {
+            v.push(&mut ppn.get_page_bytes()[start_va.page_offset()..end_va.page_offset()]);
+        }
+        start = end_va.into();
+    }
+    v
+}
+
 pub fn translated_str(satp: usize, ptr: *const u8, len: usize) -> String {
     let page_table = PageTable::from_satp(satp);
     let mut vec_str = Vec::new();
     let mut va = ptr as usize;
     
     for _ in 0..len {
-        let pa = page_table.translate_va_to_pa(VirtAddr::from(va)).unwrap();
+        let pa = page_table.translate_va_to_pa(
+            VirtAddr::from(va)
+        ).unwrap();
         let ch = *pa.get_mut::<u8>();
         vec_str.push(ch);
         va += 1;
     }
     
     String::from_utf8(vec_str).unwrap()
-}
-
-pub fn translated_get_char(satp: usize, ptr: *const u8, len: usize) {
-    let page_table = PageTable::from_satp(satp);
-    let mut va = (ptr as usize).into();
-    let pa = page_table.translate_va_to_pa(va).unwrap();
-    let ch = pa.get_mut::<u8>();
-    *ch = console_getchar() as u8;
 }
 
 pub fn translated_refmut<T>(satp: usize, ptr: *mut T) -> &'static mut T {
