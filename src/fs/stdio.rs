@@ -1,5 +1,4 @@
 use crate::sbi::console_getchar;
-use crate::process;
 use super::{
     File, 
     UserBuffer
@@ -9,15 +8,7 @@ pub struct Stdin;
 
 impl File for Stdin {
     fn read(&self, mut buf: UserBuffer) -> usize {
-        let ch = loop {
-            let ch = console_getchar();
-            if ch != 0 {
-                break ch;
-            } else {
-                process::save_call_context();
-                process::ret();
-            }
-        };
+        let ch = console_getchar();
         let ptr = buf.inner[0].as_mut_ptr();
         unsafe {
             ptr.write_volatile(ch as u8);
