@@ -8,11 +8,15 @@ pub struct Stdin;
 
 impl File for Stdin {
     fn read(&self, mut buf: UserBuffer) -> usize {
-        let ch = console_getchar();
-        let ptr = buf.inner[0].as_mut_ptr();
-        unsafe {
-            ptr.write_volatile(ch as u8);
-        }
+        let ch_value = console_getchar() as u32;
+        let bytes = u32::to_le_bytes(ch_value);
+        let mut ptr = buf.inner[0].as_mut_ptr();
+        (0..buf.len()).for_each(|idx| {
+            unsafe {
+                ptr.write_volatile(bytes[idx]);
+                ptr = ptr.add(1);
+            }
+        });
         1
     }
 
