@@ -128,7 +128,6 @@ impl File for Pipe {
         let mut buf_iter = buf.into_iter();
         let mut read_size = 0;
         
-
         let mut read_func = || {
             let mut ring_buffer = self.buffer.lock();
             let num_read = ring_buffer.available_read();

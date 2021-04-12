@@ -11,6 +11,7 @@
 #![feature(arbitrary_enum_discriminant)]
 // to support alloc error handler
 #![feature(alloc_error_handler)]
+#![feature(assoc_char_funcs)]
 
 // load entry.asm
 global_asm!(include_str!("entry.s"));
@@ -60,7 +61,7 @@ fn main() {
 
     trap::test();
     fs::test();
-    process::test();
+    process::start();
 
     println!("");
     println!("wow, i'm stupid");

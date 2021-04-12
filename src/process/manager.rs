@@ -107,11 +107,11 @@ impl ProcessManager {
     }
 
     pub fn fork(&mut self) -> usize {
-        let process = self.current().unwrap();
-        let child = process.fork();
+        let current = self.current().unwrap();
+        let child = current.fork();
         let pid = child.pid();
         self.push_process(child);
-        self.replace(process);
+        self.replace(current);
         pid
     }
 
@@ -138,7 +138,9 @@ impl ProcessManager {
 
         match bin_dir.open_file(path) {
             Ok(bin) => {
-                let len = bin.read_to_vec(&mut elf_data).unwrap();
+                let len = bin.read_to_vec(
+                    &mut elf_data
+                ).unwrap();
                 gen_process(&elf_data[0..len]);
                 drop(root_gurad);
                 0
@@ -178,9 +180,9 @@ impl ProcessManager {
         ret
     }
 
-    pub fn pipe(&self, pipe: *mut usize) -> isize {
+    pub fn pipe(&self, ptr: *mut usize) -> isize {
         let current = self.current().unwrap();
-        let ret = current.pipe(pipe);
+        let ret = current.pipe(ptr);
         self.replace(current);
         ret
     }
@@ -223,9 +225,9 @@ lazy_static! {
     };
 }
 
-pub fn push_process(process: Arc<ProcessUnit>) {
-    PROCESS_MANAGER.lock().push_process(process);
-}
+// pub fn push_process(process: Arc<ProcessUnit>) {
+//     PROCESS_MANAGER.lock().push_process(process);
+// }
 
 pub fn exit(code: i32) {
     PROCESS_MANAGER.lock().exit(code);
@@ -267,8 +269,8 @@ pub fn close(fd: usize) -> isize {
     PROCESS_MANAGER.lock().close(fd)
 }
 
-pub fn pipe(pipe: *mut usize) -> isize {
-    PROCESS_MANAGER.lock().pipe(pipe)
+pub fn pipe(ptr: *mut usize) -> isize {
+    PROCESS_MANAGER.lock().pipe(ptr)
 }
 
 pub fn run() {

@@ -135,9 +135,8 @@ impl ProcessUnit {
 
     pub fn waitpid(&self, pid: isize, exit_code: *mut i32) -> isize {
         let children = &mut self.inner_lock().children;
-        let len = children.len();
 
-        (0..len).find(|&idx| {
+        (0..children.len()).find(|&idx| {
             children.get(idx).unwrap().pid() == pid as usize
         }).map_or(-1, |idx| {
             let child = children.remove(idx);
@@ -161,9 +160,8 @@ impl ProcessUnit {
 
     pub fn wait(&self, exit_code: *mut i32) -> isize {
         let children = &mut self.inner_lock().children;
-        let len = children.len();
 
-        (0..len).find(|&idx| {
+        (0..children.len()).find(|&idx| {
             children.get(idx).unwrap().status() == TaskStatus::Zombie
         }).map_or(-2, |idx| {
             let child = children.remove(idx);
@@ -180,42 +178,30 @@ impl ProcessUnit {
     pub fn read(&self, fd: usize, buf: *const u8, len: usize) -> isize {
         let satp = self.satp();
         let inner = self.inner_lock();
-        match inner.fd_table().get(fd) {
-            Some(option) => {
-                match option {
-                    Some(io) => {
-                        let buf = UserBuffer::new(
-                            translated_byte_buffer(satp, buf, len)
-                        );
-                        io.read(buf) as isize
-                    }
-                    None => -1
-                }
-            }
-            None => -1
-        }
+        inner.fd_table().get(fd).map_or(-1, |option| {
+            option.as_ref().map_or(-1, |io| {
+                let buf = UserBuffer::new(
+                    translated_byte_buffer(satp, buf, len)
+                );
+                io.read(buf) as isize
+            })
+        })
     }
 
     pub fn write(&self, fd: usize, buf: *const u8, len: usize) -> isize {
         let satp = self.satp();
         let inner = self.inner_lock();
-        match inner.fd_table().get(fd) {
-            Some(option) => {
-                match option {
-                    Some(io) => {
-                        let buf = UserBuffer::new(
-                            translated_byte_buffer(satp, buf, len)
-                        );
-                        io.write(buf) as isize
-                    }
-                    None => -1
-                }
-            }
-            None => -1
-        }
+        inner.fd_table().get(fd).map_or(-1, |option| {
+            option.as_ref().map_or(-1, |io| {
+                let buf = UserBuffer::new(
+                    translated_byte_buffer(satp, buf, len)
+                );
+                io.write(buf) as isize
+            })
+        })
     }
 
-    pub fn pipe(&self, pipe: *mut usize) -> isize {
+    pub fn pipe(&self, ptr: *mut usize) -> isize {
         let satp = self.satp();
         let mut inner = self.inner_lock();
         let fd_table = inner.fd_table_mut();
@@ -226,10 +212,10 @@ impl ProcessUnit {
         let write_fd = self.alloc_fd(fd_table);
         *fd_table.get_mut(write_fd).unwrap() = Some(write);;
 
-        *translated_refmut(satp, pipe) = read_fd;
+        *translated_refmut(satp, ptr) = read_fd;
         *translated_refmut(
             satp, 
-            unsafe { pipe.add(1) }
+            unsafe { ptr.add(1) }
         ) = write_fd;
 
         0

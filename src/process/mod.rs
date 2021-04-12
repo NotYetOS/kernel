@@ -4,7 +4,7 @@ mod unit;
 mod manager;
 mod pid;
 
-pub fn test() {
+pub fn start() {
     println!("");
     println!("[test] process");
     println!("----------------------->");
