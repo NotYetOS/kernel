@@ -6,9 +6,11 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use crate::task::TaskUnit;
 use alloc::vec::Vec;
+use alloc::string::String;
 use crate::fs::{
     ROOT,
     File,
+    OpenFlags,
 };
 use alloc::sync::{
     Arc,
@@ -115,14 +117,15 @@ impl ProcessManager {
         pid
     }
 
-    pub fn exec(&mut self, path: &str) -> isize {
+    pub fn exec(&mut self, path: &str, other_args: Vec<String>) -> isize {
         let mut elf_data = Vec::new();
         let root_gurad = ROOT.lock();
         let bin_dir = root_gurad.cd("bin").unwrap();
 
-        let gen_process= |elf_data: &[u8]| {
+        let gen_process = |elf_data: &[u8]| {
             let task = TaskUnit::new(&elf_data);
             let new = ProcessUnit::new(task);
+            new.push_args(path, other_args);
             match self.current() {
                 Some(last) => {
                     last.replace(new);
@@ -183,6 +186,13 @@ impl ProcessManager {
     pub fn pipe(&self, ptr: *mut usize) -> isize {
         let current = self.current().unwrap();
         let ret = current.pipe(ptr);
+        self.replace(current);
+        ret
+    }
+
+    pub fn open(&self, path: &str, flags: OpenFlags) -> isize {
+        let current = self.current().unwrap();
+        let ret = current.open(path, flags);
         self.replace(current);
         ret
     }
@@ -249,8 +259,8 @@ pub fn fork() -> usize {
     PROCESS_MANAGER.lock().fork()
 }
 
-pub fn exec(path: &str) -> isize {
-    PROCESS_MANAGER.lock().exec(path)
+pub fn exec(path: &str, other_args: Vec<String>) -> isize {
+    PROCESS_MANAGER.lock().exec(path, other_args)
 }
 
 pub fn waitpid(pid: isize, exit_code: *mut i32) -> isize {
@@ -263,6 +273,10 @@ pub fn read(fd: usize, buf: *const u8, len: usize) -> isize {
 
 pub fn write(fd: usize, buf: *const u8, len: usize) -> isize {
     PROCESS_MANAGER.lock().write(fd, buf, len)
+}
+
+pub fn open(path: &str, flags: OpenFlags) -> isize {
+    PROCESS_MANAGER.lock().open(path, flags)
 }
 
 pub fn close(fd: usize) -> isize {

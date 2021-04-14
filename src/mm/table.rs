@@ -167,6 +167,12 @@ pub fn translated_str(satp: usize, ptr: *const u8, len: usize) -> String {
     String::from_utf8(vec_str).unwrap()
 }
 
+pub fn translated_ref<T>(satp: usize, ptr: *const T) -> &'static T {
+    let page_table = PageTable::from_satp(satp);
+    let mut va = (ptr as usize).into();
+    page_table.translate_va_to_pa(va).unwrap().get_ref()
+}
+
 pub fn translated_refmut<T>(satp: usize, ptr: *mut T) -> &'static mut T {
     let page_table = PageTable::from_satp(satp);
     let mut va = (ptr as usize).into();

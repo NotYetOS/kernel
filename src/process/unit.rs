@@ -10,10 +10,13 @@ use crate::fs::{
 };
 use alloc::vec;
 use alloc::vec::Vec;
+use alloc::string::String;
 use core::cell::RefCell;
 use crate::fs::{
     Stdin,
     Stdout,
+    OpenFlags,
+    open_file,
 };
 use crate::mm::{
     translated_byte_buffer, 
@@ -27,7 +30,6 @@ use spin::{
     Mutex, 
     MutexGuard
 };
-
 
 pub struct ProcessUnit {
     pid: Pid,
@@ -133,6 +135,37 @@ impl ProcessUnit {
         self.inner_lock().task_unit = src.task_unit();
     }
 
+    pub fn push_args(&self, path: &str, mut args: Vec<String>) {
+        let satp = self.satp();
+        let mut len = 0;
+        let cx = get_context(satp);
+        args.insert(0, path.into());
+        cx.x[10] = args.len();
+        args.iter().for_each(|arg| len += arg.len());
+        let mut sp = cx.x[2];
+        sp -= len + args.len();
+        let mut addr = sp;
+
+        args.iter().for_each(|arg| {
+            for byte in arg.bytes() {
+                *translated_refmut(
+                    satp, 
+                    addr as *mut u8
+                ) = byte;
+                addr += 1;
+            }
+            *translated_refmut(
+                satp, 
+                addr as *mut u8
+            ) = '\0' as u8;
+            addr += 1;
+        });
+
+        cx.x[2] = sp;
+        cx.x[10] = args.len();
+        cx.x[11] = sp;
+    }
+
     pub fn waitpid(&self, pid: isize, exit_code: *mut i32) -> isize {
         let children = &mut self.inner_lock().children;
 
@@ -219,6 +252,16 @@ impl ProcessUnit {
         ) = write_fd;
 
         0
+    }
+
+    pub fn open(&self, path: &str, flags: OpenFlags) -> isize {
+        let mut inner = self.inner_lock();
+        let fd_table = inner.fd_table_mut();
+        open_file(path, flags).map_or(-1, |file| {
+            let fd = self.alloc_fd(fd_table);
+            *fd_table.get_mut(fd).unwrap() = Some(file);
+            fd as isize
+        })
     }
 
     pub fn close(&self, fd: usize) -> isize {

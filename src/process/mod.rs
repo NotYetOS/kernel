@@ -4,12 +4,14 @@ mod unit;
 mod manager;
 mod pid;
 
+use alloc::vec;
+
 pub fn start() {
     println!("");
     println!("[test] process");
     println!("----------------------->");
     
-    exec("shell");
+    exec("shell", vec![]);
     run();
 
     println!("<-----------------------");

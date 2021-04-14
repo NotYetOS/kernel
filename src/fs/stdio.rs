@@ -8,6 +8,9 @@ use super::{
 pub struct Stdin;
 
 impl File for Stdin {
+    fn readable(&self) -> bool { true }
+    fn writable(&self) -> bool { false }
+
     fn read(&self, mut buf: UserBuffer) -> usize {
         let mut ptr = buf.inner[0].as_mut_ptr();
         let value = console_getchar();
@@ -38,6 +41,9 @@ impl File for Stdin {
 pub struct Stdout;
 
 impl File for Stdout {
+    fn readable(&self) -> bool { false }
+    fn writable(&self) -> bool { true }
+
     fn read(&self, _: UserBuffer) -> usize {
         panic!("can't read from stdout!");
     }
