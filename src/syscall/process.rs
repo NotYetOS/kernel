@@ -1,20 +1,30 @@
-use crate::process;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
+use alloc::string::String;
+use process::PROCESS_MANAGER;
+use spin::Mutex;
+use crate::context::get_context;
+use crate::task::TaskUnit;
 use crate::trap::get_satp;
 use crate::trap::get_time_ms;
+use crate::fs::ROOT;
+use crate::process::alloc_pid;
+use crate::process::{
+    self, 
+    ProcessUnit
+};
 use crate::mm::{
     translated_str,
     translated_ref
 };
-use alloc::vec::Vec;
-use alloc::string::String;
 
 pub fn sys_exit(exit_code: i32) -> isize {
-    process::exit(exit_code);
+    PROCESS_MANAGER.lock().exit_current(exit_code);
     0
 }
 
 pub fn sys_yield() -> isize {
-    process::suspend();
+    PROCESS_MANAGER.lock().suspend_current();
     0
 }
 
@@ -23,11 +33,11 @@ pub fn sys_get_time() -> isize {
 }
 
 pub fn sys_getpid() -> isize {
-    process::getpid() as isize
+    PROCESS_MANAGER.lock().pid() as isize
 }
 
 pub fn sys_fork() -> isize {
-    process::fork() as isize
+    PROCESS_MANAGER.lock().fork_current() as isize
 }
 
 pub fn sys_exec(args: *const u8, len: usize) -> isize {
@@ -39,9 +49,9 @@ pub fn sys_exec(args: *const u8, len: usize) -> isize {
                                 .map(|arg| arg.into())
                                 .collect();
     let path = other_args.remove(0);
-    process::exec(&path, other_args) as isize
+    PROCESS_MANAGER.lock().exec(&path, other_args)
 }
 
 pub fn sys_waitpid(pid: isize, exit_code: *mut i32) -> isize {
-    process::waitpid(pid, exit_code)
+    PROCESS_MANAGER.lock().waitpid_current(pid, exit_code) as isize
 }

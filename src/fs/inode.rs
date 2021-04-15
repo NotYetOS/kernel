@@ -7,7 +7,6 @@ use fefs::dir::DirEntry;
 use fefs::file::FileEntry;
 
 use alloc::string::String;
-use crate::alloc::string::ToString;
 
 use spin::{
     Mutex, 
@@ -79,10 +78,10 @@ impl File for OSINode {
 pub fn open_file(path: &str, flags: OpenFlags) -> Option<Arc<OSINode>> {
     let (readable, writable) = flags.read_write();
 
-    let path = path.to_string();
+    let path: String = path.into();
     let mut path_vec: Vec<String> = path.split('/')
                                     .filter(|&s| !s.is_empty())
-                                    .map(|s| s.to_string())
+                                    .map(|s| s.into())
                                     .collect();
     let file_name = path_vec.remove(path_vec.len() - 1);
 
@@ -118,7 +117,7 @@ pub fn open_file(path: &str, flags: OpenFlags) -> Option<Arc<OSINode>> {
 
     if option_file.is_none() { return None; }
     let file = option_file.unwrap();
-    
+
     let inner = OSINodeInner {
         path,
         file: Arc::new(

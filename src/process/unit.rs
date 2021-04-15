@@ -4,10 +4,7 @@ use crate::fs::File;
 use crate::task::TaskUnit;
 use crate::context::get_context;
 use crate::trap::get_satp;
-use crate::fs::{
-    UserBuffer,
-    make_pipe,
-};
+
 use alloc::vec;
 use alloc::vec::Vec;
 use alloc::string::String;
@@ -15,13 +12,8 @@ use core::cell::RefCell;
 use crate::fs::{
     Stdin,
     Stdout,
-    OpenFlags,
-    open_file,
 };
-use crate::mm::{
-    translated_byte_buffer, 
-    translated_refmut
-};
+use crate::mm::translated_refmut;
 use alloc::sync::{
     Arc, 
     Weak
@@ -59,31 +51,34 @@ impl ProcessUnit {
         cx.satp = child.satp();
 
         child.set_parent(
-            Arc::downgrade(&Arc::clone(self))
+            Arc::downgrade(self)
         );
 
         self.push_child(Arc::clone(&child));
         child
     }
 
-    fn set_parent(
+    pub fn set_parent(
         &self, 
         parent: Weak<ProcessUnit>
     ) {
         self.inner_lock().set_parent(parent);
     }
 
-    fn push_child(&self, 
+    pub fn push_child(&self, 
         child: Arc<ProcessUnit>
     ) {
         self.inner_lock().push_child(child);
     }
 
-    fn task_unit(self) -> TaskUnit {
+    pub fn task_unit(self) -> TaskUnit {
         self.inner.into_inner().task_unit
     }
 
-    fn alloc_fd(&self, fd_table: &mut Vec<Option<Arc<dyn File>>>) -> usize {
+    pub fn alloc_fd(
+        &self, 
+        fd_table: &mut Vec<Option<Arc<dyn File>>>
+    ) -> usize {
         let fd_end = fd_table.len();
         
         (0..fd_end).find(|&fd| {
@@ -94,11 +89,7 @@ impl ProcessUnit {
         }, |fd| fd)
     }
 
-    // fn drop_zombie_inner(&self) {
-    //     self.inner_lock().drop_zombie()
-    // }
-
-    fn inner_lock(&self) -> MutexGuard<ProcessUnitInner> {
+    pub fn inner_lock(&self) -> MutexGuard<ProcessUnitInner> {
         self.inner.lock()
     }
 
@@ -112,15 +103,15 @@ impl ProcessUnit {
 
     pub fn set_zombie(&self, exit_code: i32) {
         self.inner_lock().exit_code = exit_code;
-        self.inner_lock().status = TaskStatus::Zombie
+        self.inner_lock().status = TaskStatus::Zombie;
     }
 
     pub fn set_suspend(&self) {
-        self.inner_lock().status = TaskStatus::Suspend
+        self.inner_lock().status = TaskStatus::Suspend;
     }
 
     pub fn set_running(&self) {
-        self.inner_lock().status = TaskStatus::Running
+        self.inner_lock().status = TaskStatus::Running;
     }
 
     pub fn status(&self) -> TaskStatus {
@@ -207,85 +198,6 @@ impl ProcessUnit {
             child.pid() as isize
         })
     }
-
-    pub fn read(&self, fd: usize, buf: *const u8, len: usize) -> isize {
-        let satp = self.satp();
-        let inner = self.inner_lock();
-        inner.fd_table().get(fd).map_or(-1, |option| {
-            option.as_ref().map_or(-1, |io| {
-                let buf = UserBuffer::new(
-                    translated_byte_buffer(satp, buf, len)
-                );
-                io.read(buf) as isize
-            })
-        })
-    }
-
-    pub fn write(&self, fd: usize, buf: *const u8, len: usize) -> isize {
-        let satp = self.satp();
-        let inner = self.inner_lock();
-        inner.fd_table().get(fd).map_or(-1, |option| {
-            option.as_ref().map_or(-1, |io| {
-                let buf = UserBuffer::new(
-                    translated_byte_buffer(satp, buf, len)
-                );
-                io.write(buf) as isize
-            })
-        })
-    }
-
-    pub fn pipe(&self, ptr: *mut usize) -> isize {
-        let satp = self.satp();
-        let mut inner = self.inner_lock();
-        let fd_table = inner.fd_table_mut();
-        let (read, write) = make_pipe();
-
-        let read_fd = self.alloc_fd(fd_table);
-        *fd_table.get_mut(read_fd).unwrap() = Some(read);
-        let write_fd = self.alloc_fd(fd_table);
-        *fd_table.get_mut(write_fd).unwrap() = Some(write);;
-
-        *translated_refmut(satp, ptr) = read_fd;
-        *translated_refmut(
-            satp, 
-            unsafe { ptr.add(1) }
-        ) = write_fd;
-
-        0
-    }
-
-    pub fn open(&self, path: &str, flags: OpenFlags) -> isize {
-        let mut inner = self.inner_lock();
-        let fd_table = inner.fd_table_mut();
-        open_file(path, flags).map_or(-1, |file| {
-            let fd = self.alloc_fd(fd_table);
-            *fd_table.get_mut(fd).unwrap() = Some(file);
-            fd as isize
-        })
-    }
-
-    pub fn close(&self, fd: usize) -> isize {
-        let mut inner = self.inner_lock();
-        match inner.fd_table_mut().get_mut(fd) {
-            Some(io) => {
-                io.take();
-                0
-            }
-            None => -1
-        }
-    }
-
-    // pub fn exit(&self) {
-    //     let lock = self.inner_lock();
-    //     match lock.parent.replace(None) {
-    //         Some(weak) => {
-    //             drop(lock);
-    //             let parent = weak.upgrade().unwrap();
-    //             parent.drop_zombie_inner();
-    //         }
-    //         None => {}
-    //     }
-    // }
 }
 
 pub struct ProcessUnitInner {
@@ -313,45 +225,30 @@ impl ProcessUnitInner {
         }
     }
 
-    fn set_parent(
+    pub fn set_parent(
         &mut self, 
         parent: Weak<ProcessUnit>
     ) {
         self.parent.replace(Some(parent));
     }
 
-    fn push_child(&mut self, 
+    pub fn push_child(&mut self, 
         child: Arc<ProcessUnit>
     ) {
         self.children.push(child);
     }
 
-    fn task_unit(&self) -> &TaskUnit {
+    pub fn task_unit(&self) -> &TaskUnit {
         &self.task_unit
     }
 
-    fn fd_table(&self) -> &Vec<Option<Arc<dyn File>>> {
+    pub fn fd_table(&self) -> &Vec<Option<Arc<dyn File>>> {
         &self.fd_table
     }
 
-    fn fd_table_mut(&mut self) -> &mut Vec<Option<Arc<dyn File>>> {
+    pub fn fd_table_mut(&mut self) -> &mut Vec<Option<Arc<dyn File>>> {
         &mut self.fd_table
     }
-
-    // fn drop_zombie(&mut self) {
-    //     let mut drop_children = Vec::new();
-    //     self.children.iter().enumerate().for_each(|(
-    //         index, 
-    //         child
-    //     )| {
-    //         if TaskStatus::Zombie == child.status() {
-    //             drop_children.push(index);
-    //         }
-    //     });
-    //     drop_children.iter().for_each(|&i| {
-    //         drop(self.children.remove(i))
-    //     })
-    // } 
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -373,13 +270,3 @@ impl Clone for ProcessUnitInner {
         }
     }
 }
-
-// impl Drop for ProcessUnit {
-//     fn drop(&mut self) {
-//         println!(
-//             "Released a zombie process, pid={}, exit_code={}", 
-//             self.pid.value(), 
-//             self.exit_code()
-//         );
-//     }
-// }

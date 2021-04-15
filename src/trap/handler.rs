@@ -45,7 +45,11 @@ pub fn trap_handler() {
     } else if scause.is_exception() {
         exception_handler(scause, cx);
     } else {
-        panic!("unsupport trap {:?}, stval = {:#x}", scause.cause(), stval);
+        panic!(
+            "unsupport trap {:?}, stval = {:#x}", 
+            scause.cause(), 
+            stval
+        );
     }
 
     unsafe { _restore() };
