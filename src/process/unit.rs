@@ -47,7 +47,7 @@ impl ProcessUnit {
         });
         
         let cx = get_context(child.satp());
-        cx.x[10] = 0;
+        cx.a0 = 0;
         cx.satp = child.satp();
 
         child.set_parent(
@@ -131,9 +131,9 @@ impl ProcessUnit {
         let mut len = 0;
         let cx = get_context(satp);
         args.insert(0, path.into());
-        cx.x[10] = args.len();
+        cx.a0 = args.len();
         args.iter().for_each(|arg| len += arg.len());
-        let mut sp = cx.x[2];
+        let mut sp = cx.sp;
         sp -= len + args.len();
         let mut addr = sp;
 
@@ -152,9 +152,9 @@ impl ProcessUnit {
             addr += 1;
         });
 
-        cx.x[2] = sp;
-        cx.x[10] = args.len();
-        cx.x[11] = sp;
+        cx.sp = sp;
+        cx.a0 = args.len();
+        cx.a1 = sp;
     }
 
     pub fn waitpid(&self, pid: isize, exit_code: *mut i32) -> isize {
@@ -184,6 +184,7 @@ impl ProcessUnit {
 
     pub fn wait(&self, exit_code: *mut i32) -> isize {
         let children = &mut self.inner_lock().children;
+        if children.is_empty() { return -1; }
 
         (0..children.len()).find(|&idx| {
             children.get(idx).unwrap().status() == TaskStatus::Zombie

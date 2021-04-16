@@ -4,9 +4,40 @@ use crate::mm::PageTable;
 
 #[repr(C)]
 pub struct Context {
-    pub x: [usize; 32],
+    pub zero: usize,
+    pub ra: usize,
+    pub sp: usize,
+    pub gp: usize,
+    pub tp: usize,
+    pub t0: usize,
+    pub t1: usize,
+    pub t2: usize,
+    pub s0: usize,
+    pub s1: usize,
+    pub a0: usize,
+    pub a1: usize,
+    pub a2: usize,
+    pub a3: usize,
+    pub a4: usize,
+    pub a5: usize,
+    pub a6: usize,
+    pub a7: usize,
+    pub s2: usize,
+    pub s3: usize,
+    pub s4: usize,
+    pub s5: usize,
+    pub s6: usize,
+    pub s7: usize,
+    pub s8: usize,
+    pub s9: usize,
+    pub s10: usize,
+    pub s11: usize,
+    pub t3: usize,
+    pub t4: usize,
+    pub t5: usize,
+    pub t6: usize,
     // save status, like privilege mode
-    sstatus: usize,
+    pub sstatus: usize,
     pub sepc: usize,
     pub satp: usize,
     kernel_satp: usize,
@@ -17,7 +48,6 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn set_sp(&mut self, sp: usize) { self.x[2] = sp; }
     pub fn init_context(
         mode: SPP, 
         entry: usize, 
@@ -32,8 +62,39 @@ impl Context {
             SPP::User => 0
         };
 
-        let mut cx = Self {
-            x: [0; 32],
+        Self {
+            zero: 0,
+            ra: 0,
+            sp,
+            gp: 0,
+            tp: 0,
+            t0: 0,
+            t1: 0,
+            t2: 0,
+            s0: 0,
+            s1: 0,
+            a0: 0,
+            a1: 0,
+            a2: 0,
+            a3: 0,
+            a4: 0,
+            a5: 0,
+            a6: 0,
+            a7: 0,
+            s2: 0,
+            s3: 0,
+            s4: 0,
+            s5: 0,
+            s6: 0,
+            s7: 0,
+            s8: 0,
+            s9: 0,
+            s10: 0,
+            s11: 0,
+            t3: 0,
+            t4: 0,
+            t5: 0,
+            t6: 0,
             sstatus,
             sepc: entry,
             satp,
@@ -42,10 +103,7 @@ impl Context {
             trap_handler,
             spp: mode as usize,
             is_in_call_process: 0,
-        };
-        
-        cx.set_sp(sp);
-        cx
+        }
     }
 }
 

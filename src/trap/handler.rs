@@ -89,10 +89,10 @@ fn exception_handler(cause: Scause, cx: &mut Context) {
         Trap::Exception(Exception::StoreMisaligned) => {},
         Trap::Exception(Exception::StoreFault) => {},
         Trap::Exception(Exception::UserEnvCall) => {
-            let id = cx.x[17];
-            cx.x[10] = syscall(
+            let id = cx.a7;
+            cx.a0 = syscall(
                 id, 
-                [cx.x[10], cx.x[11], cx.x[12]]
+                [cx.a0, cx.a1, cx.a2]
             ) as usize;
 
             if is_process_call(id) {

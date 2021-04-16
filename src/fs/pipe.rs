@@ -148,7 +148,7 @@ impl File for Pipe {
         };
 
         loop {
-            let ring_buffer= read_func();
+            let ring_buffer = read_func();
             if ring_buffer.check_write_end_closed() { 
                 break read_size; 
             } else {
