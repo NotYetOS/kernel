@@ -39,7 +39,7 @@ pub fn trap_handler() {
     let cx = get_context(
         super::get_satp()
     );
- 
+
     if scause.is_interrupt() {
         interrupt_handler(scause, cx);
     } else if scause.is_exception() {

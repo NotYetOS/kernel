@@ -3,6 +3,47 @@ use crate::config::*;
 use crate::mm::PageTable;
 
 #[repr(C)]
+struct CallContext {
+    zero: usize,
+    ra: usize,
+    s0: usize,
+    s1: usize,
+    s2: usize,
+    s3: usize,
+    s4: usize,
+    s5: usize,
+    s6: usize,
+    s7: usize,
+    s8: usize,
+    s9: usize,
+    s10: usize,
+    s11: usize,
+    sp: usize,
+}
+
+impl Default for CallContext {
+    fn default() -> Self {
+        Self {
+            zero: 0,
+            ra: 0,
+            s0: 0,
+            s1: 0,
+            s2: 0,
+            s3: 0,
+            s4: 0,
+            s5: 0,
+            s6: 0,
+            s7: 0,
+            s8: 0,
+            s9: 0,
+            s10: 0,
+            s11: 0,
+            sp: 0,
+        }
+    }
+}
+
+#[repr(C)]
 pub struct Context {
     pub zero: usize,
     pub ra: usize,
@@ -45,6 +86,7 @@ pub struct Context {
     trap_handler: usize,
     spp: usize,
     is_in_call_process: usize,
+    call_context: CallContext
 }
 
 impl Context {
@@ -103,6 +145,7 @@ impl Context {
             trap_handler,
             spp: mode as usize,
             is_in_call_process: 0,
+            call_context: CallContext::default()
         }
     }
 }

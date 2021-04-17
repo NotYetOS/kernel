@@ -1,7 +1,6 @@
 #![allow(unused)]
 
 use core::ops::Deref;
-
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use riscv::register::satp;
@@ -163,14 +162,7 @@ impl MemorySet {
                 core::mem::size_of::<Context>()
             )
         };
-
-        set.push(MapArea::new(
-            SUB_CONTEXT.into(),
-            CONTEXT.into(),
-            MapType::Alloc,
-            MapPermission::R | MapPermission::W,
-        ), Some(context_bytes));
-
+        
         set.push(MapArea::new(
             CONTEXT.into(),
             usize::MAX.into(),
@@ -263,13 +255,6 @@ impl MemorySet {
                 core::mem::size_of::<Context>()
             )
         };
-
-        set.push(MapArea::new(
-            SUB_CONTEXT.into(),
-            CONTEXT.into(),
-            MapType::Alloc,
-            MapPermission::R | MapPermission::W,
-        ), Some(context_bytes));
 
         set.push(MapArea::new(
             CONTEXT.into(),

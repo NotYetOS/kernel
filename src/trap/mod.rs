@@ -31,6 +31,20 @@ pub fn get_satp() -> usize {
     satp
 }
 
+pub fn get_kernel_satp() -> usize {
+    use crate::config::CONTEXT;
+    let mut satp: usize;
+    
+    unsafe {
+        asm!(
+            "ld {1}, 35*8({0})",
+            in(reg) CONTEXT,
+            out(reg) satp
+        );
+    }
+    satp
+}
+
 pub fn test() {
     println!("");
     println!("[test] trap");

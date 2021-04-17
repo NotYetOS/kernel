@@ -1,12 +1,3 @@
-.altmacro
-.macro STORE n
-    sd x\n, \n*8(sp)
-.endm
-
-.macro LOAD n 
-    ld x\n, \n*8(sp)
-.endm
-
 .section .text.asm
 .global _load
 .global _save_call_context
@@ -15,22 +6,33 @@
 
 _load: 
     csrw sscratch, sp
-    li sp, 0xffffffffffffe000
+    # call context addr
+    li sp, 0xfffffffffffff160
 
-    sd x1, 1*8(sp)
-    .set n, 3
-    .rept 29
-        STORE %n
-        .set n, n + 1
-    .endr
+    sd ra, 1*8(sp)
+    sd s0, 2*8(sp)
+    sd s1, 3*8(sp)
+    sd s2, 4*8(sp)
+    sd s3, 5*8(sp)
+    sd s4, 6*8(sp)
+    sd s5, 7*8(sp)
+    sd s6, 8*8(sp)
+    sd s7, 9*8(sp)
+    sd s8, 10*8(sp)
+    sd s9, 11*8(sp)
+    sd s10, 12*8(sp)
+    sd s11, 13*8(sp)
 
-    csrr t0, sscratch
-    csrr t1, sepc
-    csrr t2, satp
+    # store t1
+    sd t1, 0*8(sp)
 
-    sd t0, 2*8(sp)
-    sd t1, 33*8(sp)
-    sd t2, 34*8(sp)
+    # store kernel sp
+    csrr t1, sscratch
+    sd t1, 14*8(sp)
+
+    # restore t1
+    ld t1, 0*8(sp)
+    sd x0, 0*8(sp)
 
     csrw satp, a0
     sfence.vma
@@ -41,103 +43,143 @@ _load:
     bne t1, x0, _back_to_call_process;
     
 _back_to_user:
-    li sp, 0xfffffffffffff000
+    # store t1
+    sd t1, 0*8(sp)
 
-    sd t0, 36*8(sp)
-    ld t0, 2*8(sp)
+    # store kernel sp
+    csrr t1, sscratch
+    sd t1, 36*8(sp)
+
+    # load sstatus
     ld t1, 32*8(sp)
-    ld t2, 33*8(sp)
-    ld t3, 34*8(sp)
-
     csrw sstatus, t1
-    csrw sepc, t2
-    csrw satp, t3
 
-    ld x1, 1*8(sp)
-    ld x3, 3*8(sp)
+    # load sepc
+    ld t1, 33*8(sp)
+    csrw sepc, t1
 
-    .set n, 6
-    .rept 26
-        LOAD %n
-        .set n, n + 1
-    .endr
+    # restore t1
+    ld t1, 0*8(sp)
+    sd x0, 0*8(sp)
 
-    mv sp, t0
-    li t0, 0
+    ld ra, 1*8(sp)
+    ld gp, 3*8(sp)
+    ld tp, 4*8(sp)
+    ld t0, 5*8(sp)
+    ld t1, 6*8(sp)
+    ld t2, 7*8(sp)
+    ld s0, 8*8(sp)
+    ld s1, 9*8(sp)
+    ld a0, 10*8(sp)
+    ld a1, 11*8(sp)
+    ld a2, 12*8(sp)
+    ld a3, 13*8(sp)
+    ld a4, 14*8(sp)
+    ld a5, 15*8(sp)
+    ld a6, 16*8(sp)
+    ld a7, 17*8(sp)
+    ld s2, 18*8(sp)
+    ld s3, 19*8(sp)
+    ld s4, 20*8(sp)
+    ld s5, 21*8(sp)
+    ld s6, 22*8(sp)
+    ld s7, 23*8(sp)
+    ld s8, 24*8(sp)
+    ld s9, 25*8(sp)
+    ld s10, 26*8(sp)
+    ld s11, 27*8(sp)
+    ld t3, 28*8(sp)
+    ld t4, 29*8(sp)
+    ld t5, 30*8(sp)
+    ld t6, 31*8(sp)
+    ld sp, 2*8(sp)
+
     sret
 
 _back_to_call_process: 
+    # store t1
+    sd t1, 0*8(sp)
+
+    # clear flag
     li t1, 0
     sd t1, 39*8(sp)
 
-    li sp, 0xffffffffffffe000
+    # restore t1
+    ld t1, 0*8(sp)
+    sd x0, 0*8(sp)
 
-    ld t0, 2*8(sp)
-    ld t1, 33*8(sp)
-    ld t2, 34*8(sp)
+    li sp, 0xfffffffffffff160
+    ld ra, 1*8(sp)
+    ld s0, 2*8(sp)
+    ld s1, 3*8(sp)
+    ld s2, 4*8(sp)
+    ld s3, 5*8(sp)
+    ld s4, 6*8(sp)
+    ld s5, 7*8(sp)
+    ld s6, 8*8(sp)
+    ld s7, 9*8(sp)
+    ld s8, 10*8(sp)
+    ld s9, 11*8(sp)
+    ld s10, 12*8(sp)
+    ld s11, 13*8(sp)
+    ld sp, 14*8(sp)
 
-    csrw sepc, t1
-    csrw satp, t2
-
-    ld x1, 1*8(sp)
-    ld x3, 3*8(sp)
-
-    .set n, 6
-    .rept 26
-        LOAD %n
-        .set n, n + 1
-    .endr
-
-    mv sp, t0
-    li t0, 0
-    sret
+    ret
 
 _save_call_context:
     csrw sscratch, sp
+    li sp, 0xfffffffffffff160
+
     csrw satp, a0
     sfence.vma
 
-    li sp, 0xffffffffffffe000
+    sd ra, 1*8(sp)
+    sd s0, 2*8(sp)
+    sd s1, 3*8(sp)
+    sd s2, 4*8(sp)
+    sd s3, 5*8(sp)
+    sd s4, 6*8(sp)
+    sd s5, 7*8(sp)
+    sd s6, 8*8(sp)
+    sd s7, 9*8(sp)
+    sd s8, 10*8(sp)
+    sd s9, 11*8(sp)
+    sd s10, 12*8(sp)
+    sd s11, 13*8(sp)
 
-    sd x1, 1*8(sp)
-    .set n, 3
-    .rept 29
-        STORE %n
-        .set n, n + 1
-    .endr
+    # store t1
+    sd t1, 0*8(sp)
 
-    csrr t0, sscratch
-    csrr t1, sepc
-    csrr t2, satp
+    # store kernel sp
+    csrr t1, sscratch
+    sd t1, 14*8(sp)
 
-    sd t0, 2*8(sp)
-    sd t1, 33*8(sp)
-    sd t2, 34*8(sp)
+    # restore t1
+    ld t1, 0*8(sp)
+    sd x0, 0*8(sp)
 
-    ld t0, 35*8(sp)
-
-    csrw satp, t0
+    csrw satp, a1
     sfence.vma
 
+    csrr sp, sscratch
     ret
     
 _ret: 
-    li sp, 0xffffffffffffe000
+    li sp, 0xfffffffffffff160
 
-    ld t0, 32*8(sp)
-    ld t1, 33*8(sp)
-    csrw sstatus, t0
-    csrw sepc, t1
+    ld ra, 1*8(sp)
+    ld s0, 2*8(sp)
+    ld s1, 3*8(sp)
+    ld s2, 4*8(sp)
+    ld s3, 5*8(sp)
+    ld s4, 6*8(sp)
+    ld s5, 7*8(sp)
+    ld s6, 8*8(sp)
+    ld s7, 9*8(sp)
+    ld s8, 10*8(sp)
+    ld s9, 11*8(sp)
+    ld s10, 12*8(sp)
+    ld s11, 13*8(sp)
+    ld sp, 14*8(sp)
 
-    ld x1, 1*8(sp)
-    ld x3, 3*8(sp)
-
-    .set n, 5
-    .rept 27
-        LOAD %n
-        .set n, n + 1
-    .endr
-
-    ld sp, 2*8(sp)
     ret
-    

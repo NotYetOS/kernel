@@ -7,14 +7,18 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloc::string::String;
 use crate::fs::ROOT;
+use crate::trap::get_kernel_satp;
 use crate::task::TaskUnit;
 
 global_asm!(include_str!("process.s"));
 
 extern "C" {
-    fn _load(satp: usize); 
+    fn _load(user_satp: usize); 
     fn _ret();
-    fn _save_call_context(satp: usize);
+    fn _save_call_context(
+        user_satp: usize,
+        kernel_satp: usize
+    );
 }
 
 pub fn load(satp: usize) {
@@ -94,7 +98,11 @@ impl ProcessManager {
 
     pub fn save_call_context(&self) {
         let current = self.current().unwrap();
-        unsafe { _save_call_context(current.satp()) }
+        unsafe { 
+            _save_call_context(
+            current.satp(), 
+            get_kernel_satp()) 
+        }
     }
 
     pub fn exec(&self, path: &str, other_args: Vec<String>) -> isize {
