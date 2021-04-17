@@ -41,9 +41,9 @@ pub fn trap_handler() {
     );
 
     if scause.is_interrupt() {
-        interrupt_handler(scause, cx);
+        interrupt_handler(scause, cx, stval);
     } else if scause.is_exception() {
-        exception_handler(scause, cx);
+        exception_handler(scause, cx, stval);
     } else {
         panic!(
             "unsupport trap {:?}, stval = {:#x}", 
@@ -55,7 +55,7 @@ pub fn trap_handler() {
     unsafe { _restore() };
 }
 
-fn interrupt_handler(cause: Scause, cx: &mut Context) {
+fn interrupt_handler(cause: Scause, cx: &mut Context, stval: usize) {
     let stval = stval::read();
 
     // if interrupt happened, sepc value is the next pc where the interrupt happened
@@ -75,7 +75,7 @@ fn interrupt_handler(cause: Scause, cx: &mut Context) {
     }
 }
 
-fn exception_handler(cause: Scause, cx: &mut Context) {
+fn exception_handler(cause: Scause, cx: &mut Context, stval: usize) {
     // if exception happened, sepc value is the pc where the exception happened
     // ecall or ebreak instruction is 4 byte
     cx.sepc += 4;
@@ -83,7 +83,11 @@ fn exception_handler(cause: Scause, cx: &mut Context) {
     match cause.cause() {
         Trap::Exception(Exception::InstructionMisaligned) => {},
         Trap::Exception(Exception::InstructionFault) => {},
-        Trap::Exception(Exception::IllegalInstruction) => {},
+        Trap::Exception(Exception::IllegalInstruction) => {
+            println!("[kernel] IllegalInstruction in application, core dumped.");
+            process::exit(-3);
+            process::ret();
+        },
         Trap::Exception(Exception::Breakpoint) => {},  
         Trap::Exception(Exception::LoadFault) => {},
         Trap::Exception(Exception::StoreMisaligned) => {},
@@ -100,7 +104,16 @@ fn exception_handler(cause: Scause, cx: &mut Context) {
             }        
         },
         Trap::Exception(Exception::InstructionPageFault) => {},
-        Trap::Exception(Exception::LoadPageFault) => {},
+        Trap::Exception(Exception::LoadPageFault) => {
+            println!(
+                "[kernel] {:?} in application, bad addr = {:#x}, bad instruction = {:#x}, core dumped.",
+                cause.cause(),
+                stval,
+                cx.sepc,
+            );
+            process::exit(-2);
+            process::ret();
+        },
         Trap::Exception(Exception::StorePageFault) => {},
         Trap::Exception(Exception::Unknown) => {},
         _ => unreachable!()

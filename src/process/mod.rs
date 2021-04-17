@@ -35,3 +35,4 @@ pub use manager::*;
 pub use unit::*;
 pub use pid::*;
 pub use syscall::sys_yield as suspend;
+pub use syscall::sys_exit as exit;

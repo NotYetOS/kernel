@@ -44,6 +44,10 @@ impl UserBuffer {
         }
         total
     }
+
+    pub fn concat(&self) -> Vec<u8> {
+        self.inner.concat()
+    }
 }
 
 pub struct UserBufferIterator {

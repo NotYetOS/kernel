@@ -1,5 +1,6 @@
 use crate::alloc::string::ToString;
 use crate::sbi::console_getchar;
+use alloc::string::String;
 use super::{
     File, 
     UserBuffer
@@ -49,10 +50,12 @@ impl File for Stdout {
     }
 
     fn write(&self, buf: UserBuffer) -> usize {
-        for buf in buf.inner.iter() {
-            let str = core::str::from_utf8(buf).unwrap();
-            print!("{}", str);
-        }
+        let vec = buf.concat();
+        let str = String::from_utf8(vec).map_or(
+            "".into(), 
+            |str| str
+        );
+        print!("{}", str);
         buf.len()
     }
 }
