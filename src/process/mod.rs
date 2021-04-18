@@ -5,7 +5,6 @@ mod pid;
 use crate::syscall;
 use alloc::vec;
 use alloc::vec::Vec;
-use alloc::string::String;
 
 pub fn start() {
     println!("");
@@ -19,15 +18,10 @@ pub fn start() {
     println!("[passed] process test");
 }
 
-pub fn exec(path: &str, args: Vec<&str>) {
+pub fn exec(path: &'static str, mut args: Vec<&str>) {
     use syscall::sys_exec;
-
-    let mut new_args: String = path.into();
-    new_args.push(' ');
-    args.iter().for_each(|arg| {
-        new_args.push_str(arg);
-        new_args.push(' ');
-    });
+    args.insert(0, path);
+    let new_args = args.join(" ");
     sys_exec(new_args.as_ptr(), new_args.len());
 }
 

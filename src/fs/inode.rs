@@ -5,7 +5,7 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use fefs::dir::DirEntry;
 use fefs::file::FileEntry;
-
+use fefs::file::WriteType;
 use alloc::string::String;
 
 use spin::{
@@ -71,7 +71,15 @@ impl File for OSINode {
     }
 
     fn write(&self, buf: UserBuffer) -> usize {
-        0
+        let vec = buf.concat();
+        // if let Some(ch) = vec.pop() {
+        //     if ch != '\n' as u8 {
+        //         vec.push(ch);
+        //     }
+        // }
+        let mut file_lock = self.inner.file.lock();
+        file_lock.write(&vec, WriteType::Append).unwrap();
+        vec.len()
     }
 }
 
@@ -84,18 +92,27 @@ pub fn open_file(path: &str, flags: OpenFlags) -> Option<Arc<OSINode>> {
                                     .map(|s| s.into())
                                     .collect();
     let file_name = path_vec.remove(path_vec.len() - 1);
-
-    let root_lock = ROOT.lock();
+    let mut root_lock = ROOT.lock();
     let mut dir: Option<DirEntry> = None;
+
+    let creatable = (flags & OpenFlags::CREATE) != OpenFlags::empty();
 
     for name in path_vec.iter() {
         dir = match dir {
-            Some(dir) => dir.cd(&name).map_or(
-                None, 
+            Some(mut dir) => dir.cd(&name).map_or_else(
+                |_| if creatable { 
+                    Some(dir.mkdir(&name).unwrap())
+                } else {
+                    None
+                }, 
                 |entry| Some(entry)
             ),
-            None => root_lock.cd(&name).map_or(
-                None, 
+            None => root_lock.cd(&name).map_or_else(
+                |_| if creatable { 
+                    Some(root_lock.mkdir(&name).unwrap())
+                } else {
+                    None
+                }, 
                 |entry| Some(entry)
             ),
         };
@@ -103,14 +120,22 @@ pub fn open_file(path: &str, flags: OpenFlags) -> Option<Arc<OSINode>> {
     }
     
     let option_file = if path_vec.is_empty() {
-        root_lock.open_file(&file_name).map_or(
-            None,
+        root_lock.open_file(&file_name).map_or_else(
+            |_| if creatable { 
+                Some(root_lock.create_file(&file_name).unwrap())
+            } else {
+                None
+            },
             |file| Some(file)
         )
     } else {
-        let dir = dir.take().unwrap();
-        dir.open_file(&file_name).map_or(
-            None,
+        let mut dir = dir.take().unwrap();
+        dir.open_file(&file_name).map_or_else(
+            |_| if creatable { 
+                Some(dir.create_file(&file_name).unwrap())
+            } else {
+                None
+            },
             |file| Some(file)
         )
     };

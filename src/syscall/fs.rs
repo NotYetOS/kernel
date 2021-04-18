@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use crate::mm::*;
 use crate::trap::*;
 use crate::process;
@@ -10,7 +11,18 @@ use crate::fs::{
 };
 
 pub fn sys_dup(fd: usize) -> isize {
-    todo!()
+    let lock = PROCESS_MANAGER.lock();
+    let current = lock.current().unwrap();
+    let mut inner = current.inner_lock();
+
+    let fd_table = inner.fd_table_mut();
+    if fd_table.get(fd).is_none() { return -1; }
+    let new_fd = current.alloc_fd(fd_table);
+    *fd_table.get_mut(new_fd).unwrap() = Some(
+        Arc::clone(fd_table[fd].as_ref().unwrap())
+    );
+
+    0
 }
 
 pub fn sys_open(path: *const u8, len: usize, flags: u32) -> isize {
