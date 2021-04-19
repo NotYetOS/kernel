@@ -58,6 +58,9 @@ fn main() {
     println!("");
     println!("你好世界");
     println!("this is NotYetOS");
+    println!("cpu: {}", process::cpuid());
+    process::tp_write(1);
+    println!("cpu: {}", process::cpuid());
 
     trap::test();
     fs::test();

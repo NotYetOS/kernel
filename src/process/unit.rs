@@ -8,7 +8,6 @@ use crate::trap::get_satp;
 use alloc::vec;
 use alloc::vec::Vec;
 use alloc::string::String;
-use core::cell::RefCell;
 use crate::fs::{
     Stdin,
     Stdout,
@@ -205,7 +204,8 @@ pub struct ProcessUnitInner {
     task_unit: TaskUnit,
     status: TaskStatus,
     exit_code: i32,
-    parent: RefCell<Option<Weak<ProcessUnit>>>,
+    #[allow(unused)]
+    parent: Option<Weak<ProcessUnit>>,
     children: Vec<Arc<ProcessUnit>>,
     fd_table: Vec<Option<Arc<dyn File>>>
 }
@@ -216,7 +216,7 @@ impl ProcessUnitInner {
             task_unit,
             status: TaskStatus::Ready,
             exit_code: 0,
-            parent: RefCell::new(None),
+            parent: None,
             children: Vec::new(),
             fd_table: vec![
                 Some(Arc::new(Stdin)),
@@ -230,7 +230,7 @@ impl ProcessUnitInner {
         &mut self, 
         parent: Weak<ProcessUnit>
     ) {
-        self.parent.replace(Some(parent));
+        self.parent = Some(parent);
     }
 
     pub fn push_child(&mut self, 
@@ -264,7 +264,7 @@ impl Clone for ProcessUnitInner {
     fn clone(&self) -> Self {
         Self {
             task_unit: self.task_unit.clone(),
-            parent: RefCell::new(None),
+            parent: None,
             children: Vec::new(),
             fd_table: self.fd_table.clone(),
             ..*self
