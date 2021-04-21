@@ -54,6 +54,11 @@ struct FrameAllocator {
 
 impl FrameAllocator {
     pub fn new(start: PhysPageNum, end: PhysPageNum) -> Self {
+        (start.value()..end.value()).into_iter().for_each(|v| {
+            let ppn: PhysPageNum = v.into();
+            ppn.clean();
+        });
+
         Self {
             current: start,
             end,

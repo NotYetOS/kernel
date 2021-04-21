@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use core::ptr::NonNull;
 use super::ProcessUnit;
 

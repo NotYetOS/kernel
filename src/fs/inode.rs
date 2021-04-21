@@ -71,12 +71,12 @@ impl File for OSINode {
     }
 
     fn write(&self, buf: UserBuffer) -> usize {
-        let vec = buf.concat();
-        // if let Some(ch) = vec.pop() {
-        //     if ch != '\n' as u8 {
-        //         vec.push(ch);
-        //     }
-        // }
+        let mut vec = buf.concat();
+        if let Some(ch) = vec.pop() {
+            if ch != '\n' as u8 {
+                vec.push(ch);
+            }
+        }
         let mut file_lock = self.inner.file.lock();
         file_lock.write(&vec, WriteType::Append).unwrap();
         vec.len()

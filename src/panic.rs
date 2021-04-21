@@ -1,4 +1,6 @@
 use core::panic::PanicInfo;
+use sbi::ResetType;
+use sbi::ResetReason;
 use crate::sbi;
 
 // the processing of panic, just shutdown...
@@ -14,6 +16,6 @@ fn panic(info: &PanicInfo) -> ! {
             );
         }
         None => println!("[kernel] panicked at '{}'", info.message().unwrap())
-    }
-    sbi::shutdown()
+    };
+    sbi::reboot(ResetType::WarmReboot, ResetReason::SystemFailure)
 }

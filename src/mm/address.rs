@@ -167,6 +167,10 @@ impl PhysAddr {
 pub struct PhysPageNum(usize);
 
 impl PhysPageNum {
+    pub fn value(&self) -> usize  {
+        self.0
+    }
+    
     pub fn get_ptes(&self) -> &'static mut [PageTableEntry] {
         let pa: PhysAddr = self.clone().into();
         unsafe {

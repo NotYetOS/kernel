@@ -1,6 +1,7 @@
 #![allow(unused)]
 #![allow(non_camel_case_types)]
 
+#[derive(Debug)]
 pub struct Ret {
     pub error: ErrorType,
     pub value: isize,
@@ -9,6 +10,7 @@ pub struct Ret {
 // define error type，RISCV SBI standard
 // 'Other' to match console_getchar
 #[repr(isize)]
+#[derive(Debug)]
 pub enum ErrorType {
     SBI_SUCCESS = 0,
     SBI_ERR_FAILED = -1,
