@@ -149,7 +149,7 @@ impl MemorySet {
         let context = Context::init_context(
             SPP::Supervisor, 
             0, 
-            0,
+            set.satp_bits(),
             0,
             set.satp_bits(),
             0,
