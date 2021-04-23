@@ -9,3 +9,4 @@ mod hsm;
 pub use legacy::*;
 pub use srst::*;
 pub use hsm::*;
+pub use ret::*;

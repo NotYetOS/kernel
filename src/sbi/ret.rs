@@ -2,7 +2,7 @@
 #![allow(non_camel_case_types)]
 
 #[derive(Debug)]
-pub struct Ret {
+pub struct SbiRet {
     pub error: ErrorType,
     pub value: isize,
 }

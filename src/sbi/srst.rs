@@ -24,7 +24,10 @@ pub fn shutdown(reset_reason: ResetReason) -> ! {
     unreachable!()
 }
 
-pub fn reboot(reset_type: ResetType, reset_reason: ResetReason) -> ! {
+pub fn reboot(
+    reset_type: ResetType, 
+    reset_reason: ResetReason
+) -> ! {
     sbicall(
         EXTENSION_SRST, 
         0, 

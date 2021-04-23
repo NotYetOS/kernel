@@ -1,7 +1,7 @@
 // SBI is a good thing
 
 #[inline]
-pub fn sbicall(eid: usize, fid: usize, args: [usize; 5]) -> super::ret::Ret {
+pub fn sbicall(eid: usize, fid: usize, args: [usize; 5]) -> super::ret::SbiRet {
     let error: isize;
     let value: isize;
 
@@ -19,7 +19,7 @@ pub fn sbicall(eid: usize, fid: usize, args: [usize; 5]) -> super::ret::Ret {
         }
     }
 
-    super::ret::Ret {
+    super::ret::SbiRet {
         error: error.into(),
         value,
     }
