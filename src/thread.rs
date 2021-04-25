@@ -41,7 +41,7 @@ where
             hart
         ).into()
     }).map_or(0, |hart| {
-        let mut cx = Context::init_context(
+        let cx = Context::init_context(
             riscv::register::sstatus::SPP::Supervisor, 
             thread_start as usize,
             crate::mm::kernel_satp(),
@@ -50,11 +50,13 @@ where
             0,
             crate::trap::trap_handler as usize,
         );
-        cx.a1 = pointer;
-        cx.a2 = vtable;
     
         let leak = Box::leak(Box::new(cx));
         let cx_ptr = leak as *const _ as usize;
+
+        leak.a1 = pointer;
+        leak.a2 = vtable;
+        leak.a3 = cx_ptr;
 
         sbi::sbi_hart_start(
             hart, 
@@ -65,10 +67,17 @@ where
     });
 }
 
-pub fn thread_start(hart_id: usize, pointer: usize, vtable: usize) {
+pub fn thread_start(hart_id: usize, pointer: usize, vtable: usize, cx_ptr: usize) {
     use alloc::boxed::Box;
+    use context::Context;
 
-    // println!("start hart: {}", hart_id);
+    // drop leak context
+    unsafe {
+        use alloc::alloc::dealloc;
+        use alloc::alloc::Layout;
+        dealloc(cx_ptr as *mut u8, Layout::new::<Context>());
+    }
+
     let main = unsafe {
         let raw = core::mem::transmute::<
             (usize, usize), 
