@@ -4,6 +4,8 @@ use super::ret::SbiRet;
 const EXTENSION_HSM: usize = 0x48534D;
 
 #[allow(non_camel_case_types)]
+#[derive(Debug)]
+#[derive(PartialEq, Eq)]
 pub enum HSMHartStates {
     STARTED,
     STOPPED,

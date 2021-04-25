@@ -84,7 +84,8 @@ impl ProcessManager {
         pid
     }
 
-    pub fn waitpid_current(&self, 
+    pub fn waitpid_current(
+        &self, 
         pid: isize,
         exit_code: *mut i32
     ) -> isize {
@@ -100,8 +101,9 @@ impl ProcessManager {
         let current = self.current().unwrap();
         unsafe { 
             _save_call_context(
-            current.satp(), 
-            get_kernel_satp()) 
+                current.satp(), 
+                get_kernel_satp()
+            ) 
         }
     }
 

@@ -12,6 +12,8 @@
 // to support alloc error handler
 #![feature(alloc_error_handler)]
 #![feature(assoc_char_funcs)]
+#![feature(raw)]
+#![feature(test)]
 
 // load entry.asm
 global_asm!(include_str!("entry.s"));
@@ -29,6 +31,7 @@ mod context;
 mod process;
 mod task;
 mod syscall;
+mod thread;
 
 #[macro_use]
 extern crate bitflags;
@@ -59,10 +62,20 @@ fn main() {
     println!("你好世界");
     println!("this is NotYetOS");
 
-    trap::test();
-    fs::test();
+
+    thread::spawn(move || {
+        for i in 0..5 {
+            println!("from first, id: {}", i);
+        }
+    });
+
+
+    thread::spawn(move || {
+        for i in 0..5 {
+            println!("from second, id: {}", i);
+        }
+    });
+
     process::start();
-    println!("");
-    println!("wow, i'm stupid");
-    panic!("emm, to panic");
+    sbi::shutdown(sbi::ResetReason::NoReason);
 }
