@@ -14,6 +14,7 @@
 #![feature(assoc_char_funcs)]
 #![feature(raw)]
 #![feature(test)]
+#![feature(in_band_lifetimes)]
 
 // load entry.asm
 global_asm!(include_str!("entry.s"));
@@ -62,13 +63,11 @@ fn main() {
     println!("你好世界");
     println!("this is NotYetOS");
 
-
     thread::spawn(move || {
         for i in 0..5 {
             println!("from first, id: {}", i);
         }
     });
-
 
     thread::spawn(move || {
         for i in 0..5 {
@@ -76,6 +75,18 @@ fn main() {
         }
     });
 
+    let ret = thread::spawn(move || {
+        use alloc::vec::Vec;
+        let mut v = Vec::new();
+        for i in 0..5 {
+            v.push(i);
+        }
+        v
+    }).join().unwrap();
+
+    println!("{:?}", ret);
+
     process::start();
+    
     sbi::shutdown(sbi::ResetReason::NoReason);
 }

@@ -92,6 +92,7 @@ impl IntoIterator for UserBuffer {
     }
 }
 
+#[allow(unused)]
 pub fn test() {
     use fefs::file::WriteType;
     use fefs::dir::DirError;

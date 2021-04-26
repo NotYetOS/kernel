@@ -46,6 +46,7 @@ pub fn get_kernel_satp() -> usize {
     satp
 }
 
+#[allow(unused)]
 pub fn test() {
     println!("");
     println!("[test] trap");
