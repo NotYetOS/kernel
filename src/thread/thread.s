@@ -21,7 +21,6 @@ _load_hart:
     ld t2, 7*8(sp)
     ld s0, 8*8(sp)
     ld s1, 9*8(sp)
-    ld a0, 10*8(sp)
     ld a1, 11*8(sp)
     ld a2, 12*8(sp)
     ld a3, 13*8(sp)
