@@ -39,24 +39,15 @@ macro_rules! impl_into {
                 f.floor()
             }
         }
-    }
+    };
 }
 
-use core::fmt::{
-    self, 
-    Formatter,
-    Debug
-};
+use core::fmt::{self, Debug, Formatter};
 
-use core::ops::{
-    Add, 
-    Sub,
-    AddAssign, 
-    SubAssign
-};
+use core::ops::{Add, AddAssign, Sub, SubAssign};
 
-use crate::config::*;
 use super::PageTableEntry;
+use crate::config::*;
 
 #[derive(Clone, Copy)]
 #[repr(C)]
@@ -67,15 +58,15 @@ impl VirtAddr {
         self.0
     }
 
-    pub fn floor(&self) -> VirtPageNum { 
-        VirtPageNum(self.0 / PAGE_SIZE) 
+    pub fn floor(&self) -> VirtPageNum {
+        VirtPageNum(self.0 / PAGE_SIZE)
     }
-    
+
     // if VirtAddr % PAGE_SIZE == 0
     // VirtPageNum = VirtAddr / PAGE_SIZE
     // else
     // VirtPageNum = VirtAddr / PAGE_SIZE + 1
-    pub fn ceil(&self) -> VirtPageNum { 
+    pub fn ceil(&self) -> VirtPageNum {
         if self.0 % PAGE_SIZE == 0 {
             self.floor()
         } else {
@@ -83,11 +74,11 @@ impl VirtAddr {
         }
     }
 
-    pub fn page_offset(&self) -> usize { 
-        self.0 & (PAGE_SIZE - 1) 
+    pub fn page_offset(&self) -> usize {
+        self.0 & (PAGE_SIZE - 1)
     }
 
-    pub fn aligned(&self) -> bool { 
+    pub fn aligned(&self) -> bool {
         self.page_offset() == 0
     }
 }
@@ -106,7 +97,7 @@ impl VirtPageNum {
         let mut ret = [0; 3];
         for i in (0..3).rev() {
             ret[i] = vpn & 511;
-            vpn >>= 9; 
+            vpn >>= 9;
         }
         ret
     }
@@ -125,15 +116,15 @@ impl PhysAddr {
         self.0
     }
 
-    pub fn floor(&self) -> PhysPageNum { 
-        PhysPageNum(self.0 / PAGE_SIZE) 
+    pub fn floor(&self) -> PhysPageNum {
+        PhysPageNum(self.0 / PAGE_SIZE)
     }
-    
+
     // if PhysAddr % PAGE_SIZE == 0
     // PhysPageNum = PhysAddr / PAGE_SIZE
     // else
     // PhysPageNum = PhysAddr / PAGE_SIZE + 1
-    pub fn ceil(&self) -> PhysPageNum { 
+    pub fn ceil(&self) -> PhysPageNum {
         if self.0 % PAGE_SIZE == 0 {
             self.floor()
         } else {
@@ -141,24 +132,20 @@ impl PhysAddr {
         }
     }
 
-    pub fn page_offset(&self) -> usize { 
-        self.0 & (PAGE_SIZE - 1) 
+    pub fn page_offset(&self) -> usize {
+        self.0 & (PAGE_SIZE - 1)
     }
 
-    pub fn aligned(&self) -> bool { 
+    pub fn aligned(&self) -> bool {
         self.page_offset() == 0
     }
 
     pub fn get_ref<T>(&self) -> &'static T {
-        unsafe {
-            (self.0 as *const T).as_ref().unwrap()
-        }
+        unsafe { (self.0 as *const T).as_ref().unwrap() }
     }
 
     pub fn get_mut<T>(&self) -> &'static mut T {
-        unsafe {
-            (self.0 as *mut T).as_mut().unwrap()
-        }
+        unsafe { (self.0 as *mut T).as_mut().unwrap() }
     }
 }
 
@@ -167,28 +154,18 @@ impl PhysAddr {
 pub struct PhysPageNum(usize);
 
 impl PhysPageNum {
-    pub fn value(&self) -> usize  {
+    pub fn value(&self) -> usize {
         self.0
     }
-    
+
     pub fn get_ptes(&self) -> &'static mut [PageTableEntry] {
         let pa: PhysAddr = self.clone().into();
-        unsafe {
-            core::slice::from_raw_parts_mut(
-                pa.0 as *mut PageTableEntry, 
-                PAGE_SIZE / 8
-            )
-        }
+        unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut PageTableEntry, PAGE_SIZE / 8) }
     }
 
     pub fn get_page_bytes(&self) -> &'static mut [u8] {
         let pa: PhysAddr = self.clone().into();
-        unsafe {
-            core::slice::from_raw_parts_mut(
-                pa.0 as *mut u8, 
-                PAGE_SIZE
-            )
-        }
+        unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut u8, PAGE_SIZE) }
     }
 
     pub fn get_mut<T>(&self) -> &'static mut T {
@@ -197,9 +174,7 @@ impl PhysPageNum {
     }
 
     pub fn clean(&self) {
-        self.get_page_bytes().copy_from_slice(
-            &[0; PAGE_SIZE]
-        );
+        self.get_page_bytes().copy_from_slice(&[0; PAGE_SIZE]);
     }
 }
 
@@ -263,14 +238,11 @@ impl SubAssign<usize> for VirtPageNum {
 pub struct VPNRange {
     start: VirtPageNum,
     current: VirtPageNum,
-    end: VirtPageNum, 
+    end: VirtPageNum,
 }
 
 impl VPNRange {
-    pub fn new(
-        start: VirtPageNum, 
-        end: VirtPageNum
-    ) -> Self {
+    pub fn new(start: VirtPageNum, end: VirtPageNum) -> Self {
         Self {
             start,
             current: start,

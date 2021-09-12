@@ -1,6 +1,6 @@
-mod unit;
 mod manager;
 mod pid;
+mod unit;
 
 use crate::syscall;
 use alloc::vec;
@@ -10,7 +10,7 @@ pub fn start() {
     println!("");
     println!("[test] process");
     println!("----------------------->");
-    
+
     exec("shell", vec![]);
     run();
 
@@ -26,7 +26,7 @@ pub fn exec(path: &'static str, mut args: Vec<&str>) {
 }
 
 pub use manager::*;
-pub use unit::*;
 pub use pid::*;
-pub use syscall::sys_yield as suspend;
 pub use syscall::sys_exit as exit;
+pub use syscall::sys_yield as suspend;
+pub use unit::*;

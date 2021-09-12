@@ -2,26 +2,24 @@ mod handler;
 mod timer;
 
 pub fn enable() {
-    use riscv::register::stvec::TrapMode;
     use riscv::register::stvec;
+    use riscv::register::stvec::TrapMode;
 
-    extern "C" { fn _trap_entry(); }
+    extern "C" {
+        fn _trap_entry();
+    }
 
     unsafe {
-        stvec::write(
-            _trap_entry as usize, 
-            TrapMode::Direct
-        );
+        stvec::write(_trap_entry as usize, TrapMode::Direct);
     }
     timer::set_next_trigger();
     timer::enable();
 }
 
-
 pub fn get_satp() -> usize {
     use crate::config::CONTEXT;
     let mut satp: usize;
-    
+
     unsafe {
         asm!(
             "ld {1}, 34*8({0})",
@@ -35,7 +33,7 @@ pub fn get_satp() -> usize {
 pub fn get_kernel_satp() -> usize {
     use crate::config::CONTEXT;
     let mut satp: usize;
-    
+
     unsafe {
         asm!(
             "ld {1}, 35*8({0})",
@@ -52,7 +50,9 @@ pub fn test() {
     println!("[test] trap");
     println!("----------------------->");
 
-    unsafe { asm! { "ebreak" } }
+    unsafe {
+        asm! { "ebreak" }
+    }
 
     println!("<-----------------------");
     println!("[passed] trap test");

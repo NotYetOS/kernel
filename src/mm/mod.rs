@@ -1,18 +1,17 @@
 // impl Sv39
 mod address;
-mod pte;
-mod table;
 mod allocators;
+mod pte;
 mod set;
+mod table;
 
-use spin::Mutex;
 use alloc::sync::Arc;
 use lazy_static::lazy_static;
+use spin::Mutex;
 
 lazy_static! {
-    pub static ref KERNEL_SPACE: Arc<Mutex<MemorySet>> = Arc::new(Mutex::new(
-        MemorySet::new_kernel()
-    ));
+    pub static ref KERNEL_SPACE: Arc<Mutex<MemorySet>> =
+        Arc::new(Mutex::new(MemorySet::new_kernel()));
 }
 
 // map sections and activate Sv39
@@ -27,7 +26,7 @@ pub fn kernel_satp() -> usize {
 
 // to export
 pub use address::*;
-pub use pte::*;
 pub use allocators::*;
-pub use table::*;
+pub use pte::*;
 pub use set::*;
+pub use table::*;

@@ -1,14 +1,10 @@
-use alloc::sync::Arc;
-use crate::mm::*;
-use crate::trap::*;
-use crate::process;
 use crate::fs::OpenFlags;
+use crate::fs::{make_pipe, open_file, UserBuffer};
+use crate::mm::*;
+use crate::process;
 use crate::process::PROCESS_MANAGER;
-use crate::fs::{
-    UserBuffer, 
-    make_pipe, 
-    open_file
-};
+use crate::trap::*;
+use alloc::sync::Arc;
 
 pub fn sys_dup(fd: usize) -> isize {
     let lock = PROCESS_MANAGER.lock();
@@ -16,11 +12,11 @@ pub fn sys_dup(fd: usize) -> isize {
     let mut inner = current.inner_lock();
 
     let fd_table = inner.fd_table_mut();
-    if fd_table.get(fd).is_none() { return -1; }
+    if fd_table.get(fd).is_none() {
+        return -1;
+    }
     let new_fd = current.alloc_fd(fd_table);
-    *fd_table.get_mut(new_fd).unwrap() = Some(
-        Arc::clone(fd_table[fd].as_ref().unwrap())
-    );
+    *fd_table.get_mut(new_fd).unwrap() = Some(Arc::clone(fd_table[fd].as_ref().unwrap()));
 
     0
 }
@@ -51,7 +47,7 @@ pub fn sys_close(fd: usize) -> isize {
             io.take();
             0
         }
-        None => -1
+        None => -1,
     }
 }
 
@@ -67,13 +63,10 @@ pub fn sys_pipe(ptr: *mut usize) -> isize {
     let read_fd = current.alloc_fd(fd_table);
     *fd_table.get_mut(read_fd).unwrap() = Some(read);
     let write_fd = current.alloc_fd(fd_table);
-    *fd_table.get_mut(write_fd).unwrap() = Some(write);;
+    *fd_table.get_mut(write_fd).unwrap() = Some(write);
 
     *translated_refmut(satp, ptr) = read_fd;
-    *translated_refmut(
-        satp, 
-        unsafe { ptr.add(1) }
-    ) = write_fd;
+    *translated_refmut(satp, unsafe { ptr.add(1) }) = write_fd;
 
     0
 }
@@ -86,9 +79,7 @@ pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
     let inner = current.inner_lock();
     inner.fd_table().get(fd).map_or(-1, |option| {
         option.as_ref().map_or(-1, |io| {
-            let buf = UserBuffer::new(
-                translated_byte_buffer(satp, buf, len)
-            );
+            let buf = UserBuffer::new(translated_byte_buffer(satp, buf, len));
             io.read(buf) as isize
         })
     })
@@ -102,9 +93,7 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
     let inner = current.inner_lock();
     inner.fd_table().get(fd).map_or(-1, |option| {
         option.as_ref().map_or(-1, |io| {
-            let buf = UserBuffer::new(
-                translated_byte_buffer(satp, buf, len)
-            );
+            let buf = UserBuffer::new(translated_byte_buffer(satp, buf, len));
             io.write(buf) as isize
         })
     })

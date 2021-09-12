@@ -16,22 +16,15 @@ pub enum ResetReason {
 }
 
 pub fn shutdown(reset_reason: ResetReason) -> ! {
-    sbicall(
-        EXTENSION_SRST, 
-        0, 
-        [0, reset_reason as usize, 0, 0, 0]
-    );
+    sbicall(EXTENSION_SRST, 0, [0, reset_reason as usize, 0, 0, 0]);
     unreachable!()
 }
 
-pub fn reboot(
-    reset_type: ResetType, 
-    reset_reason: ResetReason
-) -> ! {
+pub fn reboot(reset_type: ResetType, reset_reason: ResetReason) -> ! {
     sbicall(
-        EXTENSION_SRST, 
-        0, 
-        [reset_type as usize, reset_reason as usize, 0, 0, 0]
+        EXTENSION_SRST,
+        0,
+        [reset_type as usize, reset_reason as usize, 0, 0, 0],
     );
     unreachable!()
 }

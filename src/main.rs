@@ -21,18 +21,17 @@ global_asm!(include_str!("entry.s"));
 
 #[macro_use]
 mod console;
-mod panic;
-mod sbi;
-mod mm;
 mod config;
+mod context;
 mod drivers;
 mod fs;
-mod trap;
-mod context;
+mod mm;
+mod panic;
 mod process;
-mod task;
+mod sbi;
 mod syscall;
 mod thread;
+mod trap;
 
 #[macro_use]
 extern crate bitflags;
@@ -45,11 +44,8 @@ fn clear_bss() {
         fn ebss();
     }
 
-    (estack as usize..ebss as usize).for_each(|addr| 
-        unsafe { 
-            (addr as *mut u8).write_volatile(0) 
-        }
-    );
+    (estack as usize..ebss as usize)
+        .for_each(|addr| unsafe { (addr as *mut u8).write_volatile(0) });
 }
 
 // prevent the compiler from blindly generating function names
@@ -82,11 +78,13 @@ fn main() {
             v.push(i);
         }
         v
-    }).join().unwrap();
+    })
+    .join()
+    .unwrap();
 
     println!("{:?}", ret);
 
     process::start();
-    
+
     sbi::shutdown(sbi::ResetReason::NoReason);
 }

@@ -1,13 +1,7 @@
-use alloc::sync::{
-    Arc,
-    Weak,
-};
-use spin::Mutex;
+use super::{File, UserBuffer};
 use crate::process;
-use super::{
-    File, 
-    UserBuffer
-};
+use alloc::sync::{Arc, Weak};
+use spin::Mutex;
 
 const RING_BUFFER_SIZE: usize = 32;
 
@@ -37,13 +31,8 @@ impl PipeRingBuffer {
         }
     }
 
-    pub fn set_write_end_status(
-        &mut self, 
-        write_end_status: &Arc<Pipe>
-    ) {
-        self.write_end_status = Some(
-            Arc::downgrade(write_end_status)
-        );
+    pub fn set_write_end_status(&mut self, write_end_status: &Arc<Pipe>) {
+        self.write_end_status = Some(Arc::downgrade(write_end_status));
     }
 
     pub fn read_byte(&mut self) -> u8 {
@@ -84,7 +73,7 @@ impl PipeRingBuffer {
     pub fn available_write(&self) -> usize {
         match self.status {
             RingBufferStatus::Full => 0,
-            _ => RING_BUFFER_SIZE - self.available_read()
+            _ => RING_BUFFER_SIZE - self.available_read(),
         }
     }
 
@@ -101,9 +90,7 @@ pub struct Pipe {
 }
 
 impl Pipe {
-    pub fn read_end(
-        buffer: Arc<Mutex<PipeRingBuffer>>
-    ) -> Self {
+    pub fn read_end(buffer: Arc<Mutex<PipeRingBuffer>>) -> Self {
         Self {
             readable: true,
             writable: false,
@@ -111,9 +98,7 @@ impl Pipe {
         }
     }
 
-    pub fn write_end(
-        buffer: Arc<Mutex<PipeRingBuffer>>
-    ) -> Self {
+    pub fn write_end(buffer: Arc<Mutex<PipeRingBuffer>>) -> Self {
         Self {
             readable: false,
             writable: true,
@@ -123,25 +108,29 @@ impl Pipe {
 }
 
 impl File for Pipe {
-    fn readable(&self) -> bool { self.readable }
-    fn writable(&self) -> bool { self.writable }
+    fn readable(&self) -> bool {
+        self.readable
+    }
+    fn writable(&self) -> bool {
+        self.writable
+    }
     fn read(&self, buf: UserBuffer) -> usize {
         assert_eq!(self.readable, true);
         let mut buf_iter = buf.into_iter();
         let mut read_size = 0;
-        
+
         let mut read_func = || {
             let mut ring_buffer = self.buffer.lock();
             let num_read = ring_buffer.available_read();
 
-            (0..num_read).for_each(|_| {
-                match buf_iter.next() {
-                    Some(byte_ref) => {
-                        unsafe { *byte_ref = ring_buffer.read_byte(); }
-                        read_size += 1;
+            (0..num_read).for_each(|_| match buf_iter.next() {
+                Some(byte_ref) => {
+                    unsafe {
+                        *byte_ref = ring_buffer.read_byte();
                     }
-                    None => return
+                    read_size += 1;
                 }
+                None => return,
             });
 
             ring_buffer
@@ -149,8 +138,8 @@ impl File for Pipe {
 
         loop {
             let ring_buffer = read_func();
-            if ring_buffer.check_write_end_closed() { 
-                break read_size; 
+            if ring_buffer.check_write_end_closed() {
+                break read_size;
             } else {
                 drop(ring_buffer);
                 process::save_call_context();
@@ -167,16 +156,12 @@ impl File for Pipe {
         let mut ring_buffer = self.buffer.lock();
         let num_write = ring_buffer.available_write();
 
-        (0..num_write).for_each(|_| {
-            match buf_iter.next() {
-                Some(byte_ref) => {
-                    ring_buffer.write_byte(
-                        unsafe { *byte_ref }
-                    );
-                    write_size += 1;
-                }
-                None => return 
+        (0..num_write).for_each(|_| match buf_iter.next() {
+            Some(byte_ref) => {
+                ring_buffer.write_byte(unsafe { *byte_ref });
+                write_size += 1;
             }
+            None => return,
         });
 
         write_size
@@ -184,18 +169,10 @@ impl File for Pipe {
 }
 
 pub fn make_pipe() -> (Arc<Pipe>, Arc<Pipe>) {
-    let buffer = Arc::new(
-        Mutex::new(
-            PipeRingBuffer::new()
-        )
-    );
+    let buffer = Arc::new(Mutex::new(PipeRingBuffer::new()));
 
-    let read_end = Arc::new(
-        Pipe::read_end(buffer.clone())
-    );
-    let write_end = Arc::new(
-        Pipe::write_end(buffer.clone())
-    );
+    let read_end = Arc::new(Pipe::read_end(buffer.clone()));
+    let write_end = Arc::new(Pipe::write_end(buffer.clone()));
 
     buffer.lock().set_write_end_status(&write_end);
     (read_end, write_end)

@@ -2,20 +2,21 @@
 
 use crate::config::*;
 use crate::sbi::*;
-use riscv::register::{
-    sie, 
-    time
-};
+use riscv::register::{sie, time};
 
 const TICKS_PER_SEC: usize = 100;
 const MSEC_PER_SEC: usize = 1000;
 
 pub fn enable() {
-    unsafe { sie::set_stimer(); }
+    unsafe {
+        sie::set_stimer();
+    }
 }
 
 pub fn disable() {
-    unsafe { sie::clear_stimer(); }
+    unsafe {
+        sie::clear_stimer();
+    }
 }
 
 pub fn set_next_trigger() {

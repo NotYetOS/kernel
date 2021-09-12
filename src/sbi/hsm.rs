@@ -4,8 +4,7 @@ use super::ret::SbiRet;
 const EXTENSION_HSM: usize = 0x48534D;
 
 #[allow(non_camel_case_types)]
-#[derive(Debug)]
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum HSMHartStates {
     STARTED,
     STOPPED,
@@ -32,30 +31,14 @@ impl From<SbiRet> for HSMHartStates {
     }
 }
 
-pub fn sbi_hart_start(
-    hart_id: usize,
-    start_addr: usize,
-    opaque: usize
-) -> SbiRet {
-    sbicall(
-        EXTENSION_HSM,
-        0,
-        [hart_id, start_addr, opaque, 0, 0]
-    )
+pub fn sbi_hart_start(hart_id: usize, start_addr: usize, opaque: usize) -> SbiRet {
+    sbicall(EXTENSION_HSM, 0, [hart_id, start_addr, opaque, 0, 0])
 }
 
 pub fn sbi_hart_stop() -> SbiRet {
-    sbicall(
-        EXTENSION_HSM,
-        1,
-        [0, 0, 0, 0, 0]
-    )
+    sbicall(EXTENSION_HSM, 1, [0, 0, 0, 0, 0])
 }
 
 pub fn sbi_hart_get_status(hart_id: usize) -> SbiRet {
-    sbicall(
-        EXTENSION_HSM, 
-        2,
-        [hart_id, 0, 0, 0, 0]
-    )
+    sbicall(EXTENSION_HSM, 2, [hart_id, 0, 0, 0, 0])
 }

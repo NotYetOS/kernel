@@ -20,7 +20,7 @@ use super::PhysPageNum;
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct PageTableEntry {
-    bits: usize
+    bits: usize,
 }
 
 impl PageTableEntry {
@@ -34,9 +34,7 @@ impl PageTableEntry {
     }
 
     pub fn empty() -> Self {
-        PageTableEntry {
-            bits: 0,
-        }
+        PageTableEntry { bits: 0 }
     }
 
     pub fn flags(&self) -> PTEFlags {
@@ -79,7 +77,7 @@ impl PageTableEntry {
     pub fn is_dirty_after_d_be_cleaned(&self) -> bool {
         (self.flags() & PTEFlags::D) != PTEFlags::empty()
     }
-    
+
     pub fn is_leaf(&self) -> bool {
         self.readable() | self.writable() | self.executable()
     }

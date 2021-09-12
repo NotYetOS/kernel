@@ -1,13 +1,10 @@
-use buddy_system_allocator::LockedHeap;
+use crate::config::*;
 use alloc::vec::Vec;
+use buddy_system_allocator::LockedHeap;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use crate::config::*;
 
-use super::{
-    PhysPageNum,
-    PhysAddr
-};
+use super::{PhysAddr, PhysPageNum};
 
 #[global_allocator]
 static HEAP_ALLOCATOR: LockedHeap = LockedHeap::empty();
@@ -49,7 +46,7 @@ impl FrameTracker {
 struct FrameAllocator {
     current: PhysPageNum,
     end: PhysPageNum,
-    recycled: Vec<PhysPageNum>
+    recycled: Vec<PhysPageNum>,
 }
 
 impl FrameAllocator {
@@ -62,7 +59,7 @@ impl FrameAllocator {
         Self {
             current: start,
             end,
-            recycled: Vec::new()
+            recycled: Vec::new(),
         }
     }
 
@@ -72,8 +69,8 @@ impl FrameAllocator {
             None if self.current < self.end => {
                 self.current += 1;
                 Some((self.current - 1).into())
-            },
-            None => None
+            }
+            None => None,
         }
     }
 
@@ -94,7 +91,7 @@ impl From<PhysPageNum> for FrameTracker {
 pub fn frame_alloc() -> FrameTracker {
     match FRAME_ALL0CATOR.lock().alloc() {
         Some(f) => f,
-        None => panic!("No frame can be allocated")
+        None => panic!("No frame can be allocated"),
     }
 }
 

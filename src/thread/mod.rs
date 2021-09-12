@@ -37,19 +37,16 @@ pub const NUM_HART: usize = 8;
 
 mod pool;
 
-use pool::{
-    THREAD_POOL,
-    Thread
-};
-use alloc::sync::Arc;
-use alloc::boxed::Box;
-use core::any::Any;
-use core::cell::UnsafeCell;
-use context::Context;
-use riscv::register::sstatus::SPP;
 use crate::context;
 use crate::sbi;
 use crate::sbi::HSMHartStates;
+use alloc::boxed::Box;
+use alloc::sync::Arc;
+use context::Context;
+use core::any::Any;
+use core::cell::UnsafeCell;
+use pool::{Thread, THREAD_POOL};
+use riscv::register::sstatus::SPP;
 
 global_asm!(include_str!("thread.s"));
 
@@ -59,10 +56,12 @@ pub fn spawn<'a, F, T>(f: F) -> JoinHandle<T>
 where
     F: FnOnce() -> T,
     F: 'static + Send,
-    T: 'static + Send
+    T: 'static + Send,
 {
-    extern "C" { fn _load_hart(); }
-    
+    extern "C" {
+        fn _load_hart();
+    }
+
     let my_packet: Arc<UnsafeCell<Option<Result<T>>>> = Arc::new(UnsafeCell::new(None));
     let their_packet = my_packet.clone();
 
@@ -70,62 +69,51 @@ where
         let t = __rust_begin_short_backtrace(f);
         unsafe { *their_packet.get() = Some(Ok(t)) };
     };
-    
+
     let main_box = unsafe {
-        core::mem::transmute::<
-            Box<dyn FnOnce() + 'a>,
-            Box<dyn FnOnce() + 'static>
-        >(
-            Box::new(main),
-        )
+        core::mem::transmute::<Box<dyn FnOnce() + 'a>, Box<dyn FnOnce() + 'static>>(Box::new(main))
     };
 
     let raw = Box::into_raw(main_box);
 
-    let (pointer, vtable) = unsafe {
-        core::mem::transmute::<*mut dyn FnOnce(), (usize, usize)>(raw)
-    };
+    let (pointer, vtable) =
+        unsafe { core::mem::transmute::<*mut dyn FnOnce(), (usize, usize)>(raw) };
 
-    let thread = (0..NUM_HART).find(|&hart_id| {
-        HSMHartStates::STOPPED == sbi::sbi_hart_get_status(hart_id).into()
-    }).map_or(None, |hart_id| {
-        let cx = Context::init_context(
-            SPP::Supervisor, 
-            thread_start as usize,
-            crate::mm::kernel_satp(),
-            SP[hart_id].as_ptr() as usize + SP[hart_id].len(),
-            crate::mm::kernel_satp(),
-            0,
-            crate::trap::trap_handler as usize,
-        );
-    
-        let leak = Box::leak(Box::new(cx));
-        let cx_ptr = leak as *const _ as usize;
+    let thread = (0..NUM_HART)
+        .find(|&hart_id| HSMHartStates::STOPPED == sbi::sbi_hart_get_status(hart_id).into())
+        .map_or(None, |hart_id| {
+            let cx = Context::init_context(
+                SPP::Supervisor,
+                thread_start as usize,
+                crate::mm::kernel_satp(),
+                SP[hart_id].as_ptr() as usize + SP[hart_id].len(),
+                crate::mm::kernel_satp(),
+                0,
+                crate::trap::trap_handler as usize,
+            );
 
-        leak.a1 = pointer;
-        leak.a2 = vtable;
-        leak.a3 = cx_ptr;
-        
-        sbi::sbi_hart_start(
-            hart_id, 
-            _load_hart as usize, 
-            cx_ptr
-        );
-        
-        Some(Thread {
-            hart_id,
-            name: "test".into(),
-            state: HSMHartStates::STOPPED,
-            context: leak,
+            let leak = Box::leak(Box::new(cx));
+            let cx_ptr = leak as *const _ as usize;
+
+            leak.a1 = pointer;
+            leak.a2 = vtable;
+            leak.a3 = cx_ptr;
+
+            sbi::sbi_hart_start(hart_id, _load_hart as usize, cx_ptr);
+
+            Some(Thread {
+                hart_id,
+                name: "test".into(),
+                state: HSMHartStates::STOPPED,
+                context: leak,
+            })
         })
-    }).unwrap();
+        .unwrap();
 
-    JoinHandle(
-        JoinInner {
-            thread,
-            packet: Packet(my_packet),
-        }
-    )
+    JoinHandle(JoinInner {
+        thread,
+        packet: Packet(my_packet),
+    })
 }
 
 pub fn thread_start(hart_id: usize, pointer: usize, vtable: usize, cx_ptr: usize) {
@@ -135,12 +123,9 @@ pub fn thread_start(hart_id: usize, pointer: usize, vtable: usize, cx_ptr: usize
         use alloc::alloc::Layout;
         dealloc(cx_ptr as *mut u8, Layout::new::<Context>());
     }
-    
+
     let main = unsafe {
-        let raw = core::mem::transmute::<
-            (usize, usize), 
-            *mut dyn FnOnce()
-        >((pointer, vtable));
+        let raw = core::mem::transmute::<(usize, usize), *mut dyn FnOnce()>((pointer, vtable));
         Box::from_raw(raw)
     };
 

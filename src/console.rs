@@ -1,8 +1,5 @@
 use crate::sbi;
-use core::fmt::{
-    self, 
-    Write
-};
+use core::fmt::{self, Write};
 
 struct Stdout;
 

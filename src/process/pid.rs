@@ -4,7 +4,7 @@ use spin::Mutex;
 
 struct PidAllocator {
     current: usize,
-    recycled: Vec<usize>
+    recycled: Vec<usize>,
 }
 
 impl PidAllocator {
@@ -45,9 +45,7 @@ impl Drop for Pid {
 }
 
 lazy_static! {
-    static ref PID_ALLOCATOR: Mutex<PidAllocator> = {
-        Mutex::new(PidAllocator::new())
-    };
+    static ref PID_ALLOCATOR: Mutex<PidAllocator> = Mutex::new(PidAllocator::new());
 }
 
 pub fn alloc_pid() -> Pid {

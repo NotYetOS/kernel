@@ -1,24 +1,12 @@
-use spin::Mutex;
-use lazy_static::lazy_static;
-use alloc::vec::Vec;
-use fefs::{
-    BLOCK_SIZE, 
-    device::BlockDevice
-};
-use virtio_drivers::{
-    VirtIOBlk,
-    VirtIOHeader
-};
 use crate::mm::{
-    FrameTracker, 
-    PageTable, 
-    PhysAddr, 
-    PhysPageNum,
-    VirtAddr, 
-    frame_alloc, 
-    frame_dealloc, 
-    kernel_satp
+    frame_alloc, frame_dealloc, kernel_satp, FrameTracker, PageTable, PhysAddr, PhysPageNum,
+    VirtAddr,
 };
+use alloc::vec::Vec;
+use fefs::{device::BlockDevice, BLOCK_SIZE};
+use lazy_static::lazy_static;
+use spin::Mutex;
+use virtio_drivers::{VirtIOBlk, VirtIOHeader};
 
 const VIRTIO_MMIO: usize = 0x10001000;
 
@@ -26,21 +14,27 @@ pub struct VirtIOBlock(Mutex<VirtIOBlk<'static>>);
 
 impl VirtIOBlock {
     pub fn new() -> Self {
-        Self(Mutex::new(VirtIOBlk::new(
-            unsafe { &mut *(VIRTIO_MMIO as *mut VirtIOHeader) }
-        ).unwrap()))
+        Self(Mutex::new(
+            VirtIOBlk::new(unsafe { &mut *(VIRTIO_MMIO as *mut VirtIOHeader) }).unwrap(),
+        ))
     }
 }
 
 impl BlockDevice for VirtIOBlock {
     fn read(&self, addr: usize, buf: &mut [u8]) {
         let block_id = addr / BLOCK_SIZE;
-        self.0.lock().read_block(block_id, buf).expect("Error when reading VirtIOBlk");
+        self.0
+            .lock()
+            .read_block(block_id, buf)
+            .expect("Error when reading VirtIOBlk");
     }
 
     fn write(&self, addr: usize, buf: &[u8]) {
         let block_id = addr / BLOCK_SIZE;
-        self.0.lock().write_block(block_id, buf).expect("Error when writing VirtIOBlk");
+        self.0
+            .lock()
+            .write_block(block_id, buf)
+            .expect("Error when writing VirtIOBlk");
     }
 }
 
@@ -80,6 +74,6 @@ pub extern "C" fn virtio_phys_to_virt(paddr: PhysAddr) -> VirtAddr {
 pub extern "C" fn virtio_virt_to_phys(vaddr: VirtAddr) -> PhysAddr {
     match PageTable::from_satp(kernel_satp()).translate_va_to_pa(vaddr) {
         Some(pa) => pa,
-        None => panic!("It wasn't supposed to happen")
+        None => panic!("It wasn't supposed to happen"),
     }
 }

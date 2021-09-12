@@ -1,25 +1,17 @@
 #![allow(unused)]
 
-use core::ops::Deref;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-use riscv::register::satp;
-use riscv::register::sstatus::SPP;
-use xmas_elf::ElfFile;
-use xmas_elf::program;
+use super::{
+    frame_alloc, FrameTracker, Mode, PTEFlags, PageTable, PhysAddr, VPNRange, VirtAddr, VirtPageNum,
+};
 use crate::config::*;
 use crate::context::Context;
-use super::{
-    FrameTracker, 
-    Mode, 
-    PTEFlags, 
-    PageTable, 
-    PhysAddr, 
-    VPNRange,
-    VirtAddr, 
-    VirtPageNum, 
-    frame_alloc
-};
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
+use core::ops::Deref;
+use riscv::register::satp;
+use riscv::register::sstatus::SPP;
+use xmas_elf::program;
+use xmas_elf::ElfFile;
 
 extern "C" {
     fn stext();
@@ -54,14 +46,14 @@ enum MapType {
 
 pub struct MemorySet {
     table: PageTable,
-    areas: Vec<MapArea>
+    areas: Vec<MapArea>,
 }
 
 impl MemorySet {
     pub fn new() -> Self {
         Self {
             table: PageTable::new(),
-            areas: Vec::new()
+            areas: Vec::new(),
         }
     }
 
@@ -88,67 +80,75 @@ impl MemorySet {
 
         println!("mapping mmio");
         for &(start, size) in MMIO {
-            set.push(MapArea::new(
-                (start).into(), 
-                (start + size).into(), 
-                MapType::Identical, 
-                MapPermission::R | MapPermission::W
-            ), None);
+            set.push(
+                MapArea::new(
+                    (start).into(),
+                    (start + size).into(),
+                    MapType::Identical,
+                    MapPermission::R | MapPermission::W,
+                ),
+                None,
+            );
         }
 
         println!("mapping .text section");
         set.push(
             MapArea::new(
                 (stext as usize).into(),
-                (etext as usize).into(), 
-                MapType::Identical, 
-                MapPermission::R | MapPermission::X
-            ), None
+                (etext as usize).into(),
+                MapType::Identical,
+                MapPermission::R | MapPermission::X,
+            ),
+            None,
         );
 
         println!("mapping .rodata section");
         set.push(
             MapArea::new(
                 (srodata as usize).into(),
-                (erodata as usize).into(), 
-                MapType::Identical, 
-                MapPermission::R
-            ), None
+                (erodata as usize).into(),
+                MapType::Identical,
+                MapPermission::R,
+            ),
+            None,
         );
 
         println!("mapping .data section");
         set.push(
             MapArea::new(
                 (sdata as usize).into(),
-                (edata as usize).into(), 
-                MapType::Identical, 
-                MapPermission::R | MapPermission::W
-            ), None
+                (edata as usize).into(),
+                MapType::Identical,
+                MapPermission::R | MapPermission::W,
+            ),
+            None,
         );
 
         println!("mapping .bss section");
         set.push(
             MapArea::new(
                 (sbss as usize).into(),
-                (ebss as usize).into(), 
-                MapType::Identical, 
-                MapPermission::R | MapPermission::W
-            ), None
+                (ebss as usize).into(),
+                MapType::Identical,
+                MapPermission::R | MapPermission::W,
+            ),
+            None,
         );
 
         println!("mapping physical memory");
         set.push(
             MapArea::new(
                 (ekernel as usize).into(),
-                MEMORY_END.into(), 
-                MapType::Identical, 
-                MapPermission::R | MapPermission::W
-            ), None
+                MEMORY_END.into(),
+                MapType::Identical,
+                MapPermission::R | MapPermission::W,
+            ),
+            None,
         );
 
         let context = Context::init_context(
-            SPP::Supervisor, 
-            0, 
+            SPP::Supervisor,
+            0,
             set.satp_bits(),
             0,
             set.satp_bits(),
@@ -158,17 +158,20 @@ impl MemorySet {
 
         let context_bytes = unsafe {
             core::slice::from_raw_parts(
-                &context as *const _ as *const u8, 
-                core::mem::size_of::<Context>()
+                &context as *const _ as *const u8,
+                core::mem::size_of::<Context>(),
             )
         };
-        
-        set.push(MapArea::new(
-            CONTEXT.into(),
-            usize::MAX.into(),
-            MapType::Alloc,
-            MapPermission::R | MapPermission::W,
-        ), Some(context_bytes));
+
+        set.push(
+            MapArea::new(
+                CONTEXT.into(),
+                usize::MAX.into(),
+                MapType::Alloc,
+                MapPermission::R | MapPermission::W,
+            ),
+            Some(context_bytes),
+        );
 
         set
     }
@@ -179,16 +182,21 @@ impl MemorySet {
         set.push(
             MapArea::new(
                 (sasm as usize).into(),
-                (easm as usize).into(), 
-                MapType::Identical, 
-                MapPermission::R | MapPermission::X
-            ), None
+                (easm as usize).into(),
+                MapType::Identical,
+                MapPermission::R | MapPermission::X,
+            ),
+            None,
         );
 
         let elf = ElfFile::new(data).unwrap();
         let elf_header_part1 = elf.header.pt1;
         let elf_header_part2 = elf.header.pt2;
-        assert_eq!(elf_header_part1.magic, [0x7f, 0x45, 0x4c, 0x46], "invalid elf!");
+        assert_eq!(
+            elf_header_part1.magic,
+            [0x7f, 0x45, 0x4c, 0x46],
+            "invalid elf!"
+        );
 
         let program_header_count = elf_header_part2.ph_count();
         let mut end_vpn = VirtPageNum::new(0);
@@ -198,27 +206,26 @@ impl MemorySet {
             match program_header.get_type() {
                 Ok(program::Type::Load) => {
                     let start_va: VirtAddr = (program_header.virtual_addr() as usize).into();
-                    let end_va: VirtAddr = (start_va.value() + program_header.mem_size() as usize).into();
+                    let end_va: VirtAddr =
+                        (start_va.value() + program_header.mem_size() as usize).into();
                     let mut permission = MapPermission::U;
                     let program_flags = program_header.flags();
-                    if program_flags.is_read() { permission |= MapPermission::R };
-                    if program_flags.is_write() { permission |= MapPermission::W };
-                    if program_flags.is_execute() { permission |= MapPermission::X };
+                    if program_flags.is_read() {
+                        permission |= MapPermission::R
+                    };
+                    if program_flags.is_write() {
+                        permission |= MapPermission::W
+                    };
+                    if program_flags.is_execute() {
+                        permission |= MapPermission::X
+                    };
 
-                    let area = MapArea::new(
-                        start_va,
-                        end_va,
-                        MapType::Alloc,
-                        permission,
-                    );
+                    let area = MapArea::new(start_va, end_va, MapType::Alloc, permission);
 
                     end_vpn = area.range.get_end();
                     let start = program_header.offset() as usize;
                     let end = start + program_header.file_size() as usize;
-                    set.push(
-                        area, 
-                        Some(&elf.input[start..end])
-                    );
+                    set.push(area, Some(&elf.input[start..end]));
                 }
                 _ => { /* no need to impl */ }
             }
@@ -230,51 +237,54 @@ impl MemorySet {
 
         let user_stack_top = user_stack_bottom + USER_STACK_SIZE;
 
-        set.push(MapArea::new(
-            user_stack_bottom.into(),
-            user_stack_top.into(),
-            MapType::Alloc,
-            MapPermission::R | MapPermission::W | MapPermission::U,
-        ), None);
+        set.push(
+            MapArea::new(
+                user_stack_bottom.into(),
+                user_stack_top.into(),
+                MapType::Alloc,
+                MapPermission::R | MapPermission::W | MapPermission::U,
+            ),
+            None,
+        );
 
         let entry = elf_header_part2.entry_point() as usize;
 
         let context = Context::init_context(
-            mode, 
-            entry, 
+            mode,
+            entry,
             set.satp_bits(),
             user_stack_top,
             crate::mm::kernel_satp(),
             0,
-            crate::trap::trap_handler as usize
+            crate::trap::trap_handler as usize,
         );
 
         let context_bytes = unsafe {
             core::slice::from_raw_parts(
-                &context as *const _ as *const u8, 
-                core::mem::size_of::<Context>()
+                &context as *const _ as *const u8,
+                core::mem::size_of::<Context>(),
             )
         };
 
-        set.push(MapArea::new(
-            CONTEXT.into(),
-            usize::MAX.into(),
-            MapType::Alloc,
-            MapPermission::R | MapPermission::W,
-        ), Some(context_bytes));
+        set.push(
+            MapArea::new(
+                CONTEXT.into(),
+                usize::MAX.into(),
+                MapType::Alloc,
+                MapPermission::R | MapPermission::W,
+            ),
+            Some(context_bytes),
+        );
 
         set
-    } 
+    }
 
     // activate Sv39
     pub fn activate(&self, mode: Mode) {
         let satp = self.table.satp_bits(mode);
         unsafe {
             satp::write(satp);
-            asm!(
-                "sfence.vma",
-                options(nostack)
-            );
+            asm!("sfence.vma", options(nostack));
         }
     }
 }
@@ -287,17 +297,12 @@ struct MapArea {
 }
 
 impl MapArea {
-    pub fn new(
-        start: VirtAddr,
-        end: VirtAddr,
-        mtype: MapType,
-        permission: MapPermission
-    ) -> Self {
+    pub fn new(start: VirtAddr, end: VirtAddr, mtype: MapType, permission: MapPermission) -> Self {
         Self {
             range: VPNRange::new(start.floor(), end.ceil()),
             mtype,
             allocated: BTreeMap::new(),
-            permission
+            permission,
         }
     }
 
@@ -333,10 +338,8 @@ impl MapArea {
         let len = data.len();
         loop {
             let src = &data[start..len.min(start + PAGE_SIZE)];
-            let dst = &mut table.translate(current_vpn)
-                .unwrap()
-                .ppn()
-                .get_page_bytes()[..src.len()];
+            let dst =
+                &mut table.translate(current_vpn).unwrap().ppn().get_page_bytes()[..src.len()];
             dst.copy_from_slice(src);
             start += PAGE_SIZE;
             if start >= len {
@@ -378,9 +381,9 @@ impl Clone for MemorySet {
                 for vpn in area.range {
                     let src_ppn = self.translate(vpn).unwrap().ppn();
                     let dst_ppn = set.translate(vpn).unwrap().ppn();
-                    dst_ppn.get_page_bytes().copy_from_slice(
-                        src_ppn.get_page_bytes()
-                    );
+                    dst_ppn
+                        .get_page_bytes()
+                        .copy_from_slice(src_ppn.get_page_bytes());
                 }
             }
         });
@@ -392,10 +395,7 @@ impl Clone for MemorySet {
 impl Clone for MapArea {
     fn clone(&self) -> Self {
         Self {
-            range: VPNRange::new(
-                self.range.get_start(), 
-                self.range.get_end()
-            ),
+            range: VPNRange::new(self.range.get_start(), self.range.get_end()),
             allocated: BTreeMap::new(),
             ..*self
         }

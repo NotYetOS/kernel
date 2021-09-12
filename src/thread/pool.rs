@@ -1,17 +1,11 @@
-use core::ops::{
-    DerefMut,
-    Deref
-};
+use core::ops::{Deref, DerefMut};
 
-use alloc::string::String;
-use alloc::collections::BTreeMap;
-use spin::{
-    Mutex,
-    MutexGuard
-};
-use lazy_static::lazy_static;
-use crate::sbi::HSMHartStates;
 use crate::context::Context;
+use crate::sbi::HSMHartStates;
+use alloc::collections::BTreeMap;
+use alloc::string::String;
+use lazy_static::lazy_static;
+use spin::{Mutex, MutexGuard};
 
 lazy_static! {
     pub static ref THREAD_POOL: ThreadPool = ThreadPool::new();
@@ -26,9 +20,7 @@ impl ThreadPool {
     pub fn new() -> Self {
         Self {
             pool_size: super::NUM_HART,
-            inner: Mutex::new(
-                ThreadPoolInner::new()
-            )
+            inner: Mutex::new(ThreadPoolInner::new()),
         }
     }
 
@@ -42,19 +34,18 @@ impl ThreadPool {
 }
 
 pub struct ThreadPoolInner {
-    threads: BTreeMap<usize, Thread>
+    threads: BTreeMap<usize, Thread>,
 }
 
 impl ThreadPoolInner {
     fn new() -> Self {
-        Self { threads: BTreeMap::new(),}
+        Self {
+            threads: BTreeMap::new(),
+        }
     }
 
     pub fn insert(&mut self, thread: Thread) {
-        self.threads.insert(
-            thread.hart_id, 
-            thread
-        );
+        self.threads.insert(thread.hart_id, thread);
     }
 }
 

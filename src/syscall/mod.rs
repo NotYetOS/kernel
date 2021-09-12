@@ -36,16 +36,5 @@ pub fn syscall(id: usize, args: [usize; 3]) -> isize {
     }
 }
 
-pub fn is_process_call(id: usize) -> bool {
-    match id {
-        SYSCALL_EXIT => true,
-        SYSCALL_YIELD => true,
-        SYSCALL_FORK => true,
-        SYSCALL_EXEC => true,
-        SYSCALL_WAITPID => true,
-        _ => false
-    }
-}
-
 use fs::*;
 pub use process::*;

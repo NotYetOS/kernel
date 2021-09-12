@@ -6,6 +6,4 @@ pub const USER_STACK_SIZE: usize = 4096 * 2;
 pub const CONTEXT: usize = usize::MAX - PAGE_SIZE + 1;
 pub const CLOCK_FREQ: usize = 12500000;
 
-pub const MMIO: &[(usize, usize)] = &[
-    (0x10001000, 0x1000),
-];
+pub const MMIO: &[(usize, usize)] = &[(0x10001000, 0x1000)];

@@ -1,13 +1,10 @@
+use super::{File, UserBuffer};
 use crate::alloc::string::ToString;
 use crate::sbi::console_getchar;
 use alloc::string::String;
+use alloc::vec::Vec;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use alloc::vec::Vec;
-use super::{
-    File, 
-    UserBuffer
-};
 
 lazy_static! {
     static ref BYTE_BUFFER: Mutex<Vec<u8>> = Mutex::new(Vec::new());
@@ -50,8 +47,12 @@ fn getchar_from_chars() -> char {
 pub struct Stdin;
 
 impl File for Stdin {
-    fn readable(&self) -> bool { true }
-    fn writable(&self) -> bool { false }
+    fn readable(&self) -> bool {
+        true
+    }
+    fn writable(&self) -> bool {
+        false
+    }
 
     fn read(&self, mut buf: UserBuffer) -> usize {
         let mut ptr = buf.inner[0].as_mut_ptr();
@@ -66,7 +67,7 @@ impl File for Stdin {
                     ptr = ptr.add(1);
                 }
             }
-            
+
             ch.len_utf8()
         };
 
@@ -95,7 +96,7 @@ impl File for Stdin {
                     break;
                 }
             }
-        };
+        }
 
         read_func()
     }
@@ -108,8 +109,12 @@ impl File for Stdin {
 pub struct Stdout;
 
 impl File for Stdout {
-    fn readable(&self) -> bool { false }
-    fn writable(&self) -> bool { true }
+    fn readable(&self) -> bool {
+        false
+    }
+    fn writable(&self) -> bool {
+        true
+    }
 
     fn read(&self, _: UserBuffer) -> usize {
         panic!("can't read from stdout!");
@@ -117,10 +122,7 @@ impl File for Stdout {
 
     fn write(&self, buf: UserBuffer) -> usize {
         let vec = buf.concat();
-        let str = String::from_utf8(vec).map_or(
-            "".into(), 
-            |str| str
-        );
+        let str = String::from_utf8(vec).map_or("".into(), |str| str);
         print!("{}", str);
         buf.len()
     }

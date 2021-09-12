@@ -1,21 +1,21 @@
+use crate::drivers::BLOCK_DEVICE;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 use fefs::dir::DirEntry;
 use fefs::system::FileSystem;
 use lazy_static::lazy_static;
-use alloc::sync::Arc;
 use spin::Mutex;
-use alloc::vec::Vec;
-use crate::drivers::BLOCK_DEVICE;
 
-mod stdio;
-mod pipe;
 mod inode;
+mod pipe;
+mod stdio;
 
 lazy_static! {
     pub static ref ROOT: Arc<Mutex<DirEntry>> = {
         let fs = FileSystem::open(BLOCK_DEVICE.clone());
         let fs = fs.lock();
         let root = fs.root();
-        Arc::new(Mutex::new(root)) 
+        Arc::new(Mutex::new(root))
     };
 }
 
@@ -31,9 +31,7 @@ pub struct UserBuffer {
 }
 
 impl UserBuffer {
-    pub fn new(
-        buffers: Vec<&'static mut [u8]>
-    ) -> Self {
+    pub fn new(buffers: Vec<&'static mut [u8]>) -> Self {
         Self { inner: buffers }
     }
 
@@ -63,12 +61,9 @@ impl Iterator for UserBufferIterator {
         if self.current_buffer >= self.buffers.len() {
             return None;
         }
-        let ret = &mut self.buffers
-        [self.current_buffer]
-        [self.buffer_idx] as *mut u8;
+        let ret = &mut self.buffers[self.current_buffer][self.buffer_idx] as *mut u8;
 
-        if self.buffer_idx + 1 == self.buffers
-        [self.current_buffer].len() {
+        if self.buffer_idx + 1 == self.buffers[self.current_buffer].len() {
             self.current_buffer += 1;
             self.buffer_idx = 0;
         } else {
@@ -94,10 +89,10 @@ impl IntoIterator for UserBuffer {
 
 #[allow(unused)]
 pub fn test() {
-    use fefs::file::WriteType;
     use fefs::dir::DirError;
     use fefs::file::FileError;
-    
+    use fefs::file::WriteType;
+
     println!("");
     println!("[test] fefs");
     println!("----------------------->");
@@ -114,7 +109,8 @@ pub fn test() {
     let mut vec_buf = Vec::new();
 
     let str_len = "hello fefs abc".len();
-    file.write("hello fefs abc".as_bytes(), WriteType::OverWritten).unwrap();
+    file.write("hello fefs abc".as_bytes(), WriteType::OverWritten)
+        .unwrap();
     let len = file.read(&mut buf).unwrap();
     let ret = core::str::from_utf8(&buf[0..len]).unwrap();
     assert_eq!(ret, "hello fefs");
@@ -129,7 +125,10 @@ pub fn test() {
     let len = file.read_to_vec(&mut vec_buf).unwrap();
     let ret = core::str::from_utf8(&vec_buf[0..len]).unwrap();
     assert_eq!(ret, "");
-    assert_eq!(file.seek(str_len + 1).err().unwrap(), FileError::SeekValueOverFlow);
+    assert_eq!(
+        file.seek(str_len + 1).err().unwrap(),
+        FileError::SeekValueOverFlow
+    );
 
     root.delete("fefs").unwrap();
     assert!(!root.exist("fefs"));
@@ -141,12 +140,6 @@ pub fn test() {
     println!("[passed] fefs test");
 }
 
-pub use stdio::{
-    Stdin,
-    Stdout
-};
+pub use inode::{open_file, OpenFlags};
 pub use pipe::make_pipe;
-pub use inode::{
-    open_file,
-    OpenFlags
-};
+pub use stdio::{Stdin, Stdout};

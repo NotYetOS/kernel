@@ -19,7 +19,7 @@ pub enum ErrorType {
     SBI_ERR_DENIED = -4,
     SBI_ERR_INVALID_ADDRESS = -5,
     SBI_ERR_ALREADY_AVAILABLE = -6,
-    Other(isize) = -7
+    Other(isize) = -7,
 }
 
 impl From<isize> for ErrorType {
@@ -32,7 +32,7 @@ impl From<isize> for ErrorType {
             -4 => ErrorType::SBI_ERR_DENIED,
             -5 => ErrorType::SBI_ERR_INVALID_ADDRESS,
             -6 => ErrorType::SBI_ERR_ALREADY_AVAILABLE,
-            v => ErrorType::Other(v)
+            v => ErrorType::Other(v),
         }
     }
 }
@@ -47,7 +47,7 @@ impl From<ErrorType> for isize {
             ErrorType::SBI_ERR_DENIED => -4,
             ErrorType::SBI_ERR_INVALID_ADDRESS => -5,
             ErrorType::SBI_ERR_ALREADY_AVAILABLE => -6,
-            ErrorType::Other(v) => v
+            ErrorType::Other(v) => v,
         }
     }
 }

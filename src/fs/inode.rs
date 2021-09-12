@@ -1,23 +1,16 @@
 #![allow(unused)]
 
-use core::cmp::min;
+use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use core::cmp::min;
 use fefs::dir::DirEntry;
 use fefs::file::FileEntry;
 use fefs::file::WriteType;
-use alloc::string::String;
 
-use spin::{
-    Mutex, 
-    MutexGuard
-};
+use spin::{Mutex, MutexGuard};
 
-use super::{
-    ROOT,
-    File,
-    UserBuffer,
-};
+use super::{File, UserBuffer, ROOT};
 
 bitflags! {
     pub struct OpenFlags: u32 {
@@ -55,8 +48,12 @@ pub struct OSINodeInner {
 }
 
 impl File for OSINode {
-    fn readable(&self) -> bool { self.readable }
-    fn writable(&self) -> bool { self.writable }
+    fn readable(&self) -> bool {
+        self.readable
+    }
+    fn writable(&self) -> bool {
+        self.writable
+    }
 
     fn read(&self, mut buf: UserBuffer) -> usize {
         let mut file_lock = self.inner.file.lock();
@@ -65,7 +62,9 @@ impl File for OSINode {
         for idx in 0..buf.inner.len() {
             let read_buf = buf.inner.get_mut(idx).unwrap();
             read_len += file_lock.read(read_buf).unwrap();
-            if min_len == read_len { break };
+            if min_len == read_len {
+                break;
+            };
         }
         min_len
     }
@@ -87,10 +86,11 @@ pub fn open_file(path: &str, flags: OpenFlags) -> Option<Arc<OSINode>> {
     let (readable, writable) = flags.read_write();
 
     let path: String = path.into();
-    let mut path_vec: Vec<String> = path.split('/')
-                                    .filter(|&s| !s.is_empty())
-                                    .map(|s| s.into())
-                                    .collect();
+    let mut path_vec: Vec<String> = path
+        .split('/')
+        .filter(|&s| !s.is_empty())
+        .map(|s| s.into())
+        .collect();
     let file_name = path_vec.remove(path_vec.len() - 1);
     let mut root_lock = ROOT.lock();
     let mut dir: Option<DirEntry> = None;
@@ -100,65 +100,69 @@ pub fn open_file(path: &str, flags: OpenFlags) -> Option<Arc<OSINode>> {
     for name in path_vec.iter() {
         dir = match dir {
             Some(mut dir) => dir.cd(&name).map_or_else(
-                |_| if creatable { 
-                    Some(dir.mkdir(&name).unwrap())
-                } else {
-                    None
-                }, 
-                |entry| Some(entry)
+                |_| {
+                    if creatable {
+                        Some(dir.mkdir(&name).unwrap())
+                    } else {
+                        None
+                    }
+                },
+                |entry| Some(entry),
             ),
             None => root_lock.cd(&name).map_or_else(
-                |_| if creatable { 
-                    Some(root_lock.mkdir(&name).unwrap())
-                } else {
-                    None
-                }, 
-                |entry| Some(entry)
+                |_| {
+                    if creatable {
+                        Some(root_lock.mkdir(&name).unwrap())
+                    } else {
+                        None
+                    }
+                },
+                |entry| Some(entry),
             ),
         };
-        if dir.is_none() { return None; }
+        if dir.is_none() {
+            return None;
+        }
     }
-    
+
     let option_file = if path_vec.is_empty() {
         root_lock.open_file(&file_name).map_or_else(
-            |_| if creatable { 
-                Some(root_lock.create_file(&file_name).unwrap())
-            } else {
-                None
+            |_| {
+                if creatable {
+                    Some(root_lock.create_file(&file_name).unwrap())
+                } else {
+                    None
+                }
             },
-            |file| Some(file)
+            |file| Some(file),
         )
     } else {
         let mut dir = dir.take().unwrap();
         dir.open_file(&file_name).map_or_else(
-            |_| if creatable { 
-                Some(dir.create_file(&file_name).unwrap())
-            } else {
-                None
+            |_| {
+                if creatable {
+                    Some(dir.create_file(&file_name).unwrap())
+                } else {
+                    None
+                }
             },
-            |file| Some(file)
+            |file| Some(file),
         )
     };
 
-    if option_file.is_none() { return None; }
+    if option_file.is_none() {
+        return None;
+    }
     let file = option_file.unwrap();
 
     let inner = OSINodeInner {
         path,
-        file: Arc::new(
-            Mutex::new(
-                file
-            )
-        ),
+        file: Arc::new(Mutex::new(file)),
     };
 
-    Some(
-        Arc::new(
-            OSINode {
-                readable,
-                writable,
-                inner,
-            }
-        )
-    )
+    Some(Arc::new(OSINode {
+        readable,
+        writable,
+        inner,
+    }))
 }

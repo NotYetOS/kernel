@@ -1,6 +1,6 @@
-use riscv::register::sstatus::SPP;
 use crate::config::*;
 use crate::mm::PageTable;
+use riscv::register::sstatus::SPP;
 
 #[repr(C)]
 struct CallContext {
@@ -86,22 +86,22 @@ pub struct Context {
     trap_handler: usize,
     spp: usize,
     is_in_call_process: usize,
-    call_context: CallContext
+    call_context: CallContext,
 }
 
 impl Context {
     pub fn init_context(
-        mode: SPP, 
-        entry: usize, 
-        satp: usize, 
+        mode: SPP,
+        entry: usize,
+        satp: usize,
         sp: usize,
         kernel_satp: usize,
         kernel_sp: usize,
-        trap_handler: usize
+        trap_handler: usize,
     ) -> Self {
         let sstatus = match mode {
             SPP::Supervisor => 1 << 8,
-            SPP::User => 0
+            SPP::User => 0,
         };
 
         Self {
@@ -145,7 +145,7 @@ impl Context {
             trap_handler,
             spp: mode as usize,
             is_in_call_process: 0,
-            call_context: CallContext::default()
+            call_context: CallContext::default(),
         }
     }
 }

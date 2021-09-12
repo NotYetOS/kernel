@@ -2,23 +2,14 @@
 
 use core::cmp::min;
 
-use alloc::string::String;
+use super::{
+    frame_alloc, FrameTracker, PTEFlags, PageTableEntry, PhysAddr, PhysPageNum, VirtAddr,
+    VirtPageNum,
+};
 use crate::config::*;
 use crate::sbi::console_getchar;
-use super::{
-    FrameTracker, 
-    PTEFlags, 
-    PageTableEntry, 
-    PhysAddr, 
-    PhysPageNum, 
-    VirtAddr, 
-    VirtPageNum, 
-    frame_alloc
-};
-use alloc::{
-    vec,
-    vec::Vec
-};
+use alloc::string::String;
+use alloc::{vec, vec::Vec};
 
 // define mode, Sv32 not impl, just look...
 pub enum Mode {
@@ -28,12 +19,12 @@ pub enum Mode {
     Sv32 = 1,
     Sv39 = 8,
     #[allow(unused)]
-    Sv48 = 9
+    Sv48 = 9,
 }
 
 pub struct PageTable {
     root: PhysPageNum,
-    frames: Vec<FrameTracker>
+    frames: Vec<FrameTracker>,
 }
 
 impl PageTable {
@@ -41,7 +32,7 @@ impl PageTable {
         let frame = frame_alloc();
         Self {
             root: frame.ppn(),
-            frames: vec![frame]
+            frames: vec![frame],
         }
     }
 
@@ -61,7 +52,9 @@ impl PageTable {
         let mut ppn = self.root;
         for &i in &indexes[0..2] {
             let pte = &mut ppn.get_ptes()[i];
-            if !pte.is_valid() { return None; }
+            if !pte.is_valid() {
+                return None;
+            }
             ppn = pte.ppn();
         }
         Some(&ppn.get_ptes()[indexes[2]])
@@ -101,7 +94,7 @@ impl PageTable {
     pub fn map(&mut self, vpn: VirtPageNum, ppn: PhysPageNum, flags: PTEFlags) {
         let pte = match self.find_pte_by_create(vpn) {
             Some(pte) => pte,
-            None => unreachable!()
+            None => unreachable!(),
         };
 
         assert!(!pte.is_valid(), "{:?} is valid before mapping", vpn);
@@ -111,19 +104,15 @@ impl PageTable {
     pub fn unmap(&mut self, vpn: VirtPageNum) {
         let pte = match self.find_pte_by_create(vpn) {
             Some(pte) => pte,
-            None => unreachable!()
+            None => unreachable!(),
         };
-        
+
         assert!(pte.is_valid(), "{:?} is invalid before unmapping", vpn);
         *pte = PageTableEntry::empty();
     }
 }
 
-pub fn translated_byte_buffer(
-    satp: usize, 
-    ptr: *const u8, 
-    len: usize
-) -> Vec<&'static mut [u8]> {
+pub fn translated_byte_buffer(satp: usize, ptr: *const u8, len: usize) -> Vec<&'static mut [u8]> {
     let page_table = PageTable::from_satp(satp);
     let mut start = ptr as usize;
     let end = start + len;
@@ -132,10 +121,7 @@ pub fn translated_byte_buffer(
     while start < end {
         let start_va = VirtAddr::from(start);
         let mut vpn = start_va.floor();
-        let ppn = page_table
-            .translate(vpn)
-            .unwrap()
-            .ppn();
+        let ppn = page_table.translate(vpn).unwrap().ppn();
         vpn += 1;
         let mut end_va: VirtAddr = vpn.into();
         end_va = min(end_va.value(), end).into();
@@ -154,16 +140,14 @@ pub fn translated_str(satp: usize, ptr: *const u8, len: usize) -> String {
     let page_table = PageTable::from_satp(satp);
     let mut vec_str = Vec::new();
     let mut va = ptr as usize;
-    
+
     for _ in 0..len {
-        let pa = page_table.translate_va_to_pa(
-            VirtAddr::from(va)
-        ).unwrap();
+        let pa = page_table.translate_va_to_pa(VirtAddr::from(va)).unwrap();
         let ch = *pa.get_mut::<u8>();
         vec_str.push(ch);
         va += 1;
     }
-    
+
     String::from_utf8(vec_str).unwrap()
 }
 
