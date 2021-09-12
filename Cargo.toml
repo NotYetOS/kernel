@@ -26,7 +26,6 @@ git = "https://github.com/rcore-os/virtio-drivers"
 [dependencies.fefs]
 path = "../fefs"
 
-
 # number of thread
 [features]
 default = ["1t"]
