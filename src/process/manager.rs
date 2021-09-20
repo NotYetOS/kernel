@@ -50,25 +50,6 @@ impl ProcessManager {
         unsafe { _save_call_context(current.satp(), get_kernel_satp()) }
     }
 
-    pub fn run_inner(&mut self) -> bool {
-        match self.current.get_mut() {
-            Some(process) => {
-                process.set_running();
-                load(process.satp());
-                true
-            }
-            None => false,
-        }
-    }
-
-    pub fn run(&mut self) {
-        loop {
-            if !self.run_inner() {
-                break;
-            }
-        }
-    }
-
     pub fn current(&self) -> Option<Arc<ProcessUnit>> {
         self.current.borrow().as_ref().map(|unit| Arc::clone(&unit))
     }
@@ -108,8 +89,4 @@ pub fn pop_process() -> Option<Arc<ProcessUnit>> {
 
 pub fn save_call_context() {
     PROCESS_MANAGER.lock().save_call_context();
-}
-
-pub fn run() {
-    PROCESS_MANAGER.lock().run()
 }

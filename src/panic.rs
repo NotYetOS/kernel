@@ -18,5 +18,6 @@ fn panic(info: &PanicInfo) -> ! {
         }
         None => println!("[kernel] panicked at '{}'", info.message().unwrap()),
     };
-    sbi::reboot(ResetType::WarmReboot, ResetReason::SystemFailure)
+    loop {}
+    //sbi::reboot(ResetType::WarmReboot, ResetReason::SystemFailure)
 }

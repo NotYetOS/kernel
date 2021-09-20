@@ -43,7 +43,7 @@ fn interrupt_handler(cause: Scause, cx: &mut Context, stval: usize) {
         Trap::Interrupt(Interrupt::UserTimer) => {}
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
             super::timer::set_next_trigger();
-            process::suspend();
+            process::suspend_and_run_next();
         }
         Trap::Interrupt(Interrupt::UserExternal) => {}
         Trap::Interrupt(Interrupt::SupervisorExternal) => {}
@@ -62,8 +62,7 @@ fn exception_handler(cause: Scause, cx: &mut Context, stval: usize) {
         Trap::Exception(Exception::InstructionFault) => {}
         Trap::Exception(Exception::IllegalInstruction) => {
             println!("[kernel] IllegalInstruction in application, core dumped.");
-            process::exit(-3);
-            process::ret();
+            process::exit_and_run_next(-3);
         }
         Trap::Exception(Exception::Breakpoint) => {}
         Trap::Exception(Exception::LoadFault) => {}
@@ -72,6 +71,7 @@ fn exception_handler(cause: Scause, cx: &mut Context, stval: usize) {
         Trap::Exception(Exception::UserEnvCall) => {
             let id = cx.a7;
             cx.a0 = syscall(id, [cx.a0, cx.a1, cx.a2]) as usize;
+            process::suspend_and_run_next();
         }
         Trap::Exception(Exception::InstructionPageFault) => {}
         Trap::Exception(Exception::LoadPageFault) => {
@@ -81,7 +81,7 @@ fn exception_handler(cause: Scause, cx: &mut Context, stval: usize) {
                 stval,
                 cx.sepc,
             );
-            process::exit(-2);
+            process::exit_and_run_next(-2);
         }
         Trap::Exception(Exception::StorePageFault) => {}
         Trap::Exception(Exception::Unknown) => {}

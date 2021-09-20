@@ -18,14 +18,12 @@ use process::PROCESS_MANAGER;
 use spin::Mutex;
 
 pub fn sys_exit(exit_code: i32) -> isize {
-    pop_process().map_or_else(
-        || {
-            take_current_process().map_or(-1, |process| {
-                process.set_zombie(exit_code);
-                0
-            })
-        },
-        |process| {
+    take_current_process().map_or(-1, |process| {
+        process.set_zombie(exit_code);
+        0
+    });
+
+    pop_process().map_or(-1, |process| {
             let satp = process.satp();
             set_current_process(process);
             load(satp);
@@ -114,11 +112,9 @@ pub fn sys_exec(args: *const u8, len: usize) -> isize {
 
 pub fn sys_waitpid(pid: isize, exit_code: *mut i32) -> isize {
     match current_process() {
-        Some(process) => {
-            match pid {
-                -1 => process.wait(exit_code),
-                other => process.waitpid(other, exit_code),
-            }
+        Some(process) => match pid {
+            -1 => process.wait(exit_code),
+            other => process.waitpid(other, exit_code),
         },
         None => -1,
     }

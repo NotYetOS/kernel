@@ -44,8 +44,9 @@ fn clear_bss() {
         fn ebss();
     }
 
-    (estack as usize..ebss as usize)
-        .for_each(|addr| unsafe { (addr as *mut u8).write_volatile(0) });
+    for addr in estack as usize..ebss as usize {
+        unsafe { (addr as *mut u8).write_volatile(0) }
+    }
 }
 
 // prevent the compiler from blindly generating function names
@@ -59,30 +60,30 @@ fn main() {
     println!("你好世界");
     println!("this is NotYetOS");
 
-    thread::spawn(move || {
-        for i in 0..5 {
-            println!("from first, id: {}", i);
-        }
-    });
+    // thread::spawn(move || {
+    //     for i in 0..5 {
+    //         println!("from first, id: {}", i);
+    //     }
+    // });
 
-    thread::spawn(move || {
-        for i in 0..5 {
-            println!("from second, id: {}", i);
-        }
-    });
+    // thread::spawn(move || {
+    //     for i in 0..5 {
+    //         println!("from second, id: {}", i);
+    //     }
+    // });
 
-    let ret = thread::spawn(move || {
-        use alloc::vec::Vec;
-        let mut v = Vec::new();
-        for i in 0..5 {
-            v.push(i);
-        }
-        v
-    })
-    .join()
-    .unwrap();
+    // let ret = thread::spawn(move || {
+    //     use alloc::vec::Vec;
+    //     let mut v = Vec::new();
+    //     for i in 0..5 {
+    //         v.push(i);
+    //     }
+    //     v
+    // })
+    // .join()
+    // .unwrap();
 
-    println!("{:?}", ret);
+    // println!("{:?}", ret);
 
     process::start();
 

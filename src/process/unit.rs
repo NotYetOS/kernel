@@ -35,6 +35,14 @@ impl ProcessUnit {
         }
     }
 
+    pub fn get_parent(&self) -> Option<Arc<ProcessUnit>> {
+        self.inner_lock().get_parent()
+    }
+
+    pub fn take_child_by_satp(&self, satp: usize) -> Option<Arc<ProcessUnit>> {
+        self.inner_lock().take_child_by_satp(satp)
+    }
+    
     pub fn fork_self(self: &Arc<ProcessUnit>) -> Arc<ProcessUnit> {
         let child = Arc::new(Self {
             pid: alloc_pid(),
@@ -199,6 +207,15 @@ impl ProcessUnitInner {
                 Some(Arc::new(Stdout)),
             ],
         }
+    }
+
+    pub fn get_parent(&self) -> Option<Arc<ProcessUnit>> {
+        self.parent.as_ref().map_or(None, |weak| weak.upgrade())
+    }
+
+    pub fn take_child_by_satp(&mut self, satp: usize) -> Option<Arc<ProcessUnit>> {
+        let idx = self.children.iter().position(|child| child.pid() == satp);
+        idx.map_or(None, |idx| Some(self.children.remove(idx)))
     }
 
     pub fn set_parent(&mut self, parent: Weak<ProcessUnit>) {

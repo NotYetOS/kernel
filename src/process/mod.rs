@@ -12,7 +12,6 @@ pub fn start() {
     println!("----------------------->");
 
     exec("shell", vec![]);
-    run();
 
     println!("<-----------------------");
     println!("[passed] process test");
@@ -27,6 +26,6 @@ pub fn exec(path: &'static str, mut args: Vec<&str>) {
 
 pub use manager::*;
 pub use pid::*;
-pub use syscall::sys_exit as exit;
-pub use syscall::sys_yield as suspend;
+pub use syscall::sys_exit as exit_and_run_next;
+pub use syscall::sys_yield as suspend_and_run_next;
 pub use unit::*;
